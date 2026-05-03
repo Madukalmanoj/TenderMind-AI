@@ -310,6 +310,45 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 /* Toast */
 #toasts { position:fixed; top:66px; right:22px; z-index:500; display:flex; flex-direction:column; gap:7px; pointer-events:none; }
 @keyframes slideIn{from{transform:translateX(18px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* BIDDER MANAGEMENT */
+.bm-section { margin-top:18px; }
+.bm-empty-state { text-align:center; padding:28px 18px; color:var(--gray); }
+.bm-empty-state .bm-ico { font-size:32px; margin-bottom:10px; }
+.bm-empty-state p { font-size:13px; }
+.bm-empty-state .demo-note { font-size:11px; margin-top:6px; background:var(--blue-pale); border:1px solid #BFDBFE; border-radius:5px; padding:7px 12px; color:var(--blue); font-weight:500; }
+.bm-bidder-row { display:flex; align-items:center; padding:11px 16px; border-bottom:1px solid var(--gray-border); gap:10px; }
+.bm-bidder-row:last-child { border-bottom:none; }
+.bm-idx { width:22px; height:22px; background:var(--navy); color:white; border-radius:50%; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.bm-name { font-size:13px; font-weight:600; color:var(--text); flex:1; }
+.bm-gstin { font-family:var(--mono); font-size:11px; color:var(--gray); }
+.bm-del { background:none; border:none; color:var(--red); font-size:18px; cursor:pointer; padding:0 4px; line-height:1; opacity:0.6; transition:opacity .15s; }
+.bm-del:hover { opacity:1; }
+.bm-count-note { font-size:11px; color:var(--gray); padding:8px 16px; background:var(--gray-light); border-top:1px solid var(--gray-border); font-style:italic; }
+
+/* Add Bidder Modal */
+.ab-modal-box { background:white; border-radius:8px; padding:0; max-width:640px; width:95%; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 24px 56px rgba(0,0,0,0.38); }
+.ab-mhdr { padding:18px 22px; border-bottom:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; background:var(--navy); }
+.ab-mhdr h2 { font-size:16px; font-weight:700; color:white; }
+.ab-mclose { background:none; border:none; color:rgba(255,255,255,0.5); font-size:22px; cursor:pointer; line-height:1; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:4px; }
+.ab-mclose:hover { background:rgba(255,255,255,0.1); color:white; }
+.ab-mbody { padding:20px 22px; overflow-y:auto; flex:1; }
+.ab-mftr { padding:14px 22px; border-top:1px solid var(--gray-border); display:flex; gap:9px; background:var(--gray-light); }
+.ab-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; margin-bottom:18px; }
+@media(max-width:560px){.ab-grid{grid-template-columns:1fr;}}
+.ab-field { display:flex; flex-direction:column; gap:5px; }
+.ab-field.full { grid-column:1/-1; }
+.ab-label { font-size:11px; font-weight:600; color:var(--text-2); text-transform:uppercase; letter-spacing:.05em; }
+.ab-label .req { color:var(--red); }
+.ab-input { padding:9px 11px; border:1.5px solid var(--gray-border); border-radius:5px; font-family:var(--font); font-size:13px; color:var(--text); background:var(--gray-light); outline:none; transition:border-color .2s; }
+.ab-input:focus { border-color:var(--blue-light); background:white; }
+.ab-select { padding:9px 11px; border:1.5px solid var(--gray-border); border-radius:5px; font-family:var(--font); font-size:13px; color:var(--text); background:var(--gray-light); outline:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B7280'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
+.ab-select:focus { border-color:var(--blue-light); background-color:white; }
+.ab-section-ttl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gray); margin:18px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--gray-border); grid-column:1/-1; }
+.ab-radio-group { display:flex; gap:10px; }
+.ab-radio { display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; color:var(--text); }
+.ab-radio input { accent-color:var(--blue); width:15px; height:15px; cursor:pointer; }
+.ab-hint { font-size:10px; color:var(--gray); margin-top:2px; line-height:1.4; }
 </style>
 </head>
 <body>
@@ -346,6 +385,106 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
     <div style="display:flex;gap:9px;">
       <button class="btn btn-ok" style="flex:1;" onclick="doApprove()">✓ Approve &amp; Lock Criteria</button>
       <button class="btn btn-s" onclick="closeModal('modal-approve')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD BIDDER MODAL -->
+<div class="modal-overlay" id="modal-addbidder">
+  <div class="ab-modal-box">
+    <div class="ab-mhdr">
+      <h2>➕ Add Bidder Manually</h2>
+      <button class="ab-mclose" onclick="closeModal('modal-addbidder')">×</button>
+    </div>
+    <div class="ab-mbody">
+      <div class="ab-grid">
+        <div class="ab-section-ttl">Company Identity</div>
+        <div class="ab-field full">
+          <label class="ab-label">Company Name <span class="req">*</span></label>
+          <input class="ab-input" id="ab-name" type="text" placeholder="e.g. Verma Infrastructure Ltd." />
+        </div>
+        <div class="ab-field">
+          <label class="ab-label">GSTIN <span class="req">*</span></label>
+          <input class="ab-input" id="ab-gstin" type="text" placeholder="e.g. 07AAACV1234K1ZS" maxlength="15" style="font-family:var(--mono);" />
+          <span class="ab-hint">15-character GST Identification Number</span>
+        </div>
+        <div class="ab-field">
+          <label class="ab-label">PAN</label>
+          <input class="ab-input" id="ab-pan" type="text" placeholder="e.g. AAACV1234K" maxlength="10" style="font-family:var(--mono);" />
+        </div>
+        <div class="ab-field">
+          <label class="ab-label">Entity Type</label>
+          <select class="ab-select" id="ab-type">
+            <option value="company">Private Limited / Ltd.</option>
+            <option value="partnership">Partnership / LLP</option>
+            <option value="proprietorship">Proprietorship</option>
+            <option value="jv">Joint Venture (JV)</option>
+            <option value="govt">Government / PSU</option>
+          </select>
+        </div>
+        <div class="ab-field">
+          <label class="ab-label">Debarred?</label>
+          <div class="ab-radio-group">
+            <label class="ab-radio"><input type="radio" name="ab-deb" value="no" checked /> No</label>
+            <label class="ab-radio"><input type="radio" name="ab-deb" value="yes" /> Yes (CPPP registry)</label>
+          </div>
+        </div>
+
+        <div class="ab-section-ttl">Criterion 1 — Financial Threshold</div>
+        <div class="ab-field">
+          <label class="ab-label">Best Year Turnover (₹ Crore) <span class="req">*</span></label>
+          <input class="ab-input" id="ab-turnover" type="number" min="0" step="0.1" placeholder="e.g. 6.5" />
+          <span class="ab-hint">Highest annual turnover in any of FY 22, 23 or 24</span>
+        </div>
+        <div class="ab-field">
+          <label class="ab-label">Years Meeting ₹5 Crore Threshold</label>
+          <select class="ab-select" id="ab-turnover-years">
+            <option value="0">0 years</option>
+            <option value="1">1 year</option>
+            <option value="2" selected>2 years</option>
+            <option value="3">3 years</option>
+          </select>
+          <span class="ab-hint">How many of the 3 years hit ₹5 Crore+?</span>
+        </div>
+
+        <div class="ab-section-ttl">Criterion 2 — Prior Experience</div>
+        <div class="ab-field">
+          <label class="ab-label">No. of Qualifying Projects <span class="req">*</span></label>
+          <input class="ab-input" id="ab-projects" type="number" min="0" step="1" placeholder="e.g. 3" />
+          <span class="ab-hint">Similar govt/defence construction, each ≥ ₹1 Crore</span>
+        </div>
+        <div class="ab-field full">
+          <label class="ab-label">Project Descriptions (for AI reasoning)</label>
+          <textarea class="ab-input" id="ab-projdesc" rows="3" placeholder="e.g. Construction of staff quarters for CISF Camp, Delhi — ₹2.3 Crore, 2023&#10;Renovation of BSF barracks — ₹1.5 Crore, 2022"></textarea>
+          <span class="ab-hint">Optional but enables more accurate AI evaluation of Criterion 2</span>
+        </div>
+
+        <div class="ab-section-ttl">Criterion 3 — GST Compliance</div>
+        <div class="ab-field">
+          <label class="ab-label">GST Registration Status <span class="req">*</span></label>
+          <div class="ab-radio-group">
+            <label class="ab-radio"><input type="radio" name="ab-gst" value="yes" checked /> Active / Valid</label>
+            <label class="ab-radio"><input type="radio" name="ab-gst" value="no" /> Inactive / Invalid</label>
+          </div>
+        </div>
+
+        <div class="ab-section-ttl">Criterion 4 — ISO Certification</div>
+        <div class="ab-field">
+          <label class="ab-label">ISO 9001:2015 Status <span class="req">*</span></label>
+          <div class="ab-radio-group">
+            <label class="ab-radio"><input type="radio" name="ab-iso" value="yes" checked /> Valid &amp; Current</label>
+            <label class="ab-radio"><input type="radio" name="ab-iso" value="no" /> Expired / None</label>
+          </div>
+        </div>
+        <div class="ab-field">
+          <label class="ab-label">ISO Expiry Date</label>
+          <input class="ab-input" id="ab-isoexp" type="text" placeholder="e.g. March 2026" />
+        </div>
+      </div>
+    </div>
+    <div class="ab-mftr">
+      <button class="btn btn-p" style="flex:1;" onclick="saveNewBidder()">➕ Add Bidder to Evaluation</button>
+      <button class="btn btn-s" onclick="closeModal('modal-addbidder')">Cancel</button>
     </div>
   </div>
 </div>
@@ -425,6 +564,28 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
         </div>
       </div>
     </div>
+
+    <!-- BIDDER MANAGEMENT SECTION -->
+    <div class="bm-section" id="bm-section" style="display:none;">
+      <div class="card">
+        <div class="ch">
+          <h3>👥 Bidder Management</h3>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="bm-mode-tag" style="font-size:11px;color:var(--blue);font-weight:600;background:var(--blue-pale);border:1px solid #BFDBFE;border-radius:4px;padding:2px 9px;">Using 5 demo bidders</span>
+            <button class="btn btn-p btn-sm" onclick="openAddBidder()">➕ Add Bidder</button>
+          </div>
+        </div>
+        <div id="bm-list-body">
+          <div class="bm-empty-state">
+            <div class="bm-ico">🏢</div>
+            <p>No bidders added yet.</p>
+            <div class="demo-note">ℹ️ The 5 pre-loaded demo bidders will be used for evaluation. Add at least one bidder above to replace them with your own.</div>
+          </div>
+        </div>
+        <div id="bm-footer" style="display:none;" class="bm-count-note"></div>
+      </div>
+    </div>
+
   </div>
 
   <!-- STAGE 2 -->
@@ -688,7 +849,10 @@ function goStage(n){
     else if(i===n){stp.classList.add('active');sn.innerHTML=i;}
     else sn.innerHTML=i;
   }
-  if(n===4) document.getElementById('rpt-gen').textContent=new Date().toLocaleString('en-IN');
+  if(n===4){
+    document.getElementById('rpt-gen').textContent=new Date().toLocaleString('en-IN');
+    buildSummaryTable();
+  }
 }
 
 // ── STAGE 1 ────────────────────────────────────────────
@@ -718,6 +882,7 @@ function runExtract(fn,fs){
     document.getElementById('ext-badge').style.display='inline-flex';
     alog('Criteria extracted — 4 criteria identified (3 rule-based, 1 qualitative)');
     toast('Extraction complete — 4 criteria identified','success');
+    document.getElementById('bm-section').style.display='block';
   },2200);
 }
 function showExtract(ep){
@@ -767,9 +932,168 @@ function doApprove(){
   setTimeout(()=>{ buildBidders(); goStage(3); alog('Evaluation stage started — debarment checks running'); },950);
 }
 
+// ── CUSTOM BIDDERS ──────────────────────────────────────
+let customBidders = [];
+let nextCustomId = 100;
+
+function getActiveBidders(){ return customBidders.length>0 ? customBidders : BIDDERS; }
+
+function openAddBidder(){
+  // reset form
+  ['ab-name','ab-gstin','ab-pan','ab-turnover','ab-projects','ab-projdesc','ab-isoexp'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('ab-turnover-years').value='2';
+  document.getElementById('ab-type').value='company';
+  document.querySelectorAll('input[name="ab-deb"]').forEach(r=>r.checked=(r.value==='no'));
+  document.querySelectorAll('input[name="ab-gst"]').forEach(r=>r.checked=(r.value==='yes'));
+  document.querySelectorAll('input[name="ab-iso"]').forEach(r=>r.checked=(r.value==='yes'));
+  document.getElementById('modal-addbidder').classList.add('active');
+}
+
+function saveNewBidder(){
+  const name=document.getElementById('ab-name').value.trim();
+  const gstin=document.getElementById('ab-gstin').value.trim().toUpperCase();
+  const pan=document.getElementById('ab-pan').value.trim().toUpperCase()||'—';
+  const turnover=parseFloat(document.getElementById('ab-turnover').value)||0;
+  const turnoverYears=parseInt(document.getElementById('ab-turnover-years').value)||0;
+  const projects=parseInt(document.getElementById('ab-projects').value)||0;
+  const projdesc=document.getElementById('ab-projdesc').value.trim();
+  const isoexp=document.getElementById('ab-isoexp').value.trim()||'Not specified';
+  const isDebarred=document.querySelector('input[name="ab-deb"]:checked').value==='yes';
+  const gstValid=document.querySelector('input[name="ab-gst"]:checked').value==='yes';
+  const isoValid=document.querySelector('input[name="ab-iso"]:checked').value==='yes';
+  const entityType=document.getElementById('ab-type').value;
+
+  if(!name){toast('Company name is required','error');return;}
+  if(!gstin||gstin.length<10){toast('Valid GSTIN is required','error');return;}
+  if(!isDebarred && document.getElementById('ab-turnover').value===''){toast('Please enter turnover (0 if unknown)','error');return;}
+  if(!isDebarred && document.getElementById('ab-projects').value===''){toast('Please enter number of qualifying projects','error');return;}
+
+  // Auto-evaluate criteria
+  const crit = isDebarred ? [] : evalCustomBidder({turnover,turnoverYears,projects,projdesc,gstValid,isoValid,isoexp,gstin});
+
+  // Determine overall status
+  let status='ELIGIBLE', sc='sb-ok', icon='✓', conf=92;
+  if(isDebarred){ status='DEBARRED'; sc='sb-deb'; icon='🚫'; conf=0; }
+  else {
+    const fails=crit.filter(c=>c.v==='FAIL').length;
+    const reviews=crit.filter(c=>c.v==='REVIEW').length;
+    if(fails>0){ status='NOT ELIGIBLE'; sc='sb-no'; icon='✗'; }
+    else if(reviews>0){ status='REVIEW NEEDED'; sc='sb-rev'; icon='⚠'; }
+    conf=Math.round(crit.reduce((s,c)=>s+c.conf,0)/crit.length);
+  }
+
+  const bidder={
+    id: nextCustomId++,
+    name, gstin, pan,
+    status, sc, icon, conf,
+    deb: isDebarred,
+    jv: entityType==='jv'?{lead:name+' (Lead)',part:'Partner TBD'}:null,
+    crit,
+    projdesc,
+    isCustom: true
+  };
+
+  customBidders.push(bidder);
+  PROJECTS[bidder.id] = projdesc || `${projects} qualifying construction project(s) declared. No detailed description provided.`;
+  closeModal('modal-addbidder');
+  renderBmList();
+  alog(`Bidder added manually: ${name} (GSTIN: ${gstin}) — verdict: ${status}`);
+  toast(`${name} added ✓`,'success');
+}
+
+function evalCustomBidder({turnover,turnoverYears,projects,projdesc,gstValid,isoValid,isoexp,gstin}){
+  // C1 Financial
+  const c1pass = turnover>=5 && turnoverYears>=2;
+  const c1 = {
+    v: c1pass?'PASS':'FAIL', vc: c1pass?'vp':'vf',
+    conf: c1pass?93:91,
+    doc: 'Submitted balance sheet / CA certificate',
+    xval: `₹${turnover.toFixed(1)} Crore (best year)`,
+    nval: `${turnoverYears} year(s) meeting threshold`,
+    thresh: 'Required: ₹5 Crore (2 of 3 years)',
+    note: c1pass?'Meets turnover requirement':'Below ₹5 Crore threshold or insufficient years'
+  };
+  // C2 Experience — flag for review if projdesc provided, else rule-based
+  const c2enoughProjects = projects>=3;
+  const c2hasDesc = projdesc.trim().length>20;
+  const c2v = !c2enoughProjects ? 'FAIL' : (c2hasDesc ? 'REVIEW' : 'PASS');
+  const c2vc = c2v==='FAIL'?'vf':c2v==='REVIEW'?'vr':'vp';
+  const c2 = {
+    v: c2v, vc: c2vc,
+    conf: c2v==='PASS'?84:c2v==='REVIEW'?72:88,
+    doc: 'Declared project experience (manual entry)',
+    xval: `${projects} project(s) declared`,
+    nval: c2hasDesc?'Description provided for AI review':'No description — rule-based only',
+    thresh: 'Required: ≥3 projects, each ≥ ₹1 Crore',
+    note: c2v==='REVIEW'?'Description provided — AI will assess similarity':'Rule-based count check only'
+  };
+  // C3 GST
+  const c3 = {
+    v: gstValid?'PASS':'FAIL', vc: gstValid?'vp':'vf',
+    conf: 97,
+    doc: 'GST registration certificate (declared)',
+    xval: gstin,
+    nval: gstValid?'GSTIN — Active (declared)':'GSTIN — Inactive / Invalid',
+    thresh: 'Required: Valid GST',
+    note: gstValid?'Active status declared by bidder':'Invalid status will disqualify bidder'
+  };
+  // C4 ISO
+  const c4 = {
+    v: isoValid?'PASS':'FAIL', vc: isoValid?'vp':'vf',
+    conf: 92,
+    doc: 'ISO 9001:2015 certificate (declared)',
+    xval: isoValid?`ISO 9001:2015 | Exp: ${isoexp}`:'No valid ISO certificate',
+    nval: isoValid?'Valid certification':'Certification absent or expired',
+    thresh: 'Required: ISO 9001:2015 (valid)',
+    note: isoValid?'Certificate declared valid':'Will cause disqualification'
+  };
+  return [c1,c2,c3,c4];
+}
+
+function removeBidder(idx){
+  const name=customBidders[idx].name;
+  customBidders.splice(idx,1);
+  renderBmList();
+  alog(`Bidder removed: ${name}`);
+  toast(`${name} removed`,'warning');
+}
+
+function renderBmList(){
+  const body=document.getElementById('bm-list-body');
+  const footer=document.getElementById('bm-footer');
+  const modeTag=document.getElementById('bm-mode-tag');
+  if(customBidders.length===0){
+    body.innerHTML=`<div class="bm-empty-state"><div class="bm-ico">🏢</div><p>No bidders added yet.</p><div class="demo-note">ℹ️ The 5 pre-loaded demo bidders will be used for evaluation. Add at least one bidder above to replace them with your own.</div></div>`;
+    footer.style.display='none';
+    modeTag.textContent='Using 5 demo bidders';
+    modeTag.style.cssText='font-size:11px;color:var(--blue);font-weight:600;background:var(--blue-pale);border:1px solid #BFDBFE;border-radius:4px;padding:2px 9px;';
+  } else {
+    body.innerHTML=customBidders.map((b,i)=>`
+      <div class="bm-bidder-row">
+        <div class="bm-idx">${i+1}</div>
+        <div style="flex:1;">
+          <div class="bm-name">${b.name}</div>
+          <div class="bm-gstin">${b.gstin}${b.pan&&b.pan!=='—'?' · PAN: '+b.pan:''}</div>
+        </div>
+        <span class="sbadge ${b.sc}" style="margin-right:8px;">${b.icon} ${b.status}</span>
+        <button class="bm-del" title="Remove bidder" onclick="removeBidder(${i})">×</button>
+      </div>
+    `).join('');
+    footer.textContent=`${customBidders.length} custom bidder(s) added — these will override the demo bidders during evaluation.`;
+    footer.style.display='block';
+    modeTag.textContent=`${customBidders.length} custom bidder(s)`;
+    modeTag.style.cssText='font-size:11px;color:#065F46;font-weight:600;background:var(--green-pale);border:1px solid #A7F3D0;border-radius:4px;padding:2px 9px;';
+  }
+}
+
 // ── STAGE 3 ────────────────────────────────────────────
 function buildBidders(){
-  document.getElementById('b-list').innerHTML=BIDDERS.map((b,i)=>`
+  const active=getActiveBidders();
+  const hdr=document.querySelector('.b-list-hdr');
+  if(hdr) hdr.textContent=`Bidders (${active.length})${customBidders.length>0?' — Custom':''}`;
+  document.getElementById('b-list').innerHTML=active.map((b,i)=>`
     <div class="b-row" id="br-${i}" onclick="selBidder(${i})">
       <div class="b-name">${b.name}</div>
       <div class="b-row-ft">
@@ -781,30 +1105,33 @@ function buildBidders(){
 }
 
 function selBidder(i){
+  const active=getActiveBidders();
   S.bidder=i;
   document.querySelectorAll('.b-row').forEach((r,j)=>r.classList.toggle('sel',j===i));
-  alog('Viewing evaluation: '+BIDDERS[i].name);
-  renderBidder(BIDDERS[i]);
+  alog('Viewing evaluation: '+active[i].name);
+  renderBidder(active[i]);
 }
 
 function renderBidder(b){
   const det=document.getElementById('b-detail');
   let h='';
   if(b.deb) h+=`<div class="deb-banner"><div class="dico">⛔</div><div class="dtxt"><strong>EVALUATION HALTED — Vendor match found in CPPP Debarred Registry</strong>GSTIN ${b.gstin} matches a debarred entity. Referred to senior officer. No further evaluation conducted.</div></div>`;
-  h+=`<div class="co-hdr"><div class="co-name">${b.name}</div><div class="co-ids"><div class="co-id"><strong>GSTIN</strong>${b.gstin}</div><div class="co-id"><strong>PAN</strong>${b.pan}</div></div><div class="deb-row">${b.deb?`<div class="deb-badge deb-fail">⛔ DEBARRED — Match found in CPPP registry</div>`:`<div class="deb-badge deb-ok">🛡 VERIFIED — Not on debarred list</div>`}<div class="coi-lbl">✓ No conflict of interest detected</div></div>${b.jv?`<div class="jv-row">Joint Venture: <strong>${b.jv.lead}</strong> + ${b.jv.part}</div>`:''}</div>`;
+  h+=`<div class="co-hdr"><div class="co-name">${b.name}${b.isCustom?` <span style="font-size:11px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.35);border-radius:4px;padding:2px 8px;color:#A5B4FC;font-weight:600;vertical-align:middle;">MANUAL ENTRY</span>`:''}
+  </div><div class="co-ids"><div class="co-id"><strong>GSTIN</strong>${b.gstin}</div><div class="co-id"><strong>PAN</strong>${b.pan}</div></div><div class="deb-row">${b.deb?`<div class="deb-badge deb-fail">⛔ DEBARRED — Match found in CPPP registry</div>`:`<div class="deb-badge deb-ok">🛡 VERIFIED — Not on debarred list</div>`}<div class="coi-lbl">✓ No conflict of interest detected</div></div>${b.jv?`<div class="jv-row">Joint Venture: <strong>${b.jv.lead}</strong> + ${b.jv.part}</div>`:''}</div>`;
   if(!b.deb){
-    h+=`<div class="eval-wrap"><h4>Criterion-by-Criterion Evaluation</h4><table class="etable"><thead><tr><th>Criterion</th><th>Document</th><th>Extracted Value</th><th>Threshold</th><th>Verdict</th><th>Confidence</th><th></th></tr></thead><tbody>`;
+    const showSrc=!b.isCustom;
+    h+=`<div class="eval-wrap"><h4>Criterion-by-Criterion Evaluation${b.isCustom?' <span style="font-size:10px;color:var(--amber);font-weight:500;text-transform:none;letter-spacing:0;">(based on declared data)</span>':''}</h4><table class="etable"><thead><tr><th>Criterion</th><th>${b.isCustom?'Declared Data':'Document'}</th><th>Value</th><th>Threshold</th><th>Verdict</th><th>Confidence</th>${showSrc?'<th></th>':''}</tr></thead><tbody>`;
     CRITERIA.forEach((c,ci)=>{
       const ev=b.crit[ci]; if(!ev) return;
       const cf=ev.conf>=80?'cfill-hi':ev.conf>=60?'cfill-md':'cfill-lo';
-      h+=`<tr><td><strong style="font-size:11px;">${c.type}</strong><br><span class="dref">Criterion ${c.n}</span></td><td><div class="dref">${ev.doc}</div></td><td><div class="xval">${ev.xval}</div><div class="nval">${ev.nval}</div></td><td><div class="thresh">${ev.thresh}</div></td><td><span class="${ev.vc}">${ev.v}</span></td><td><div class="cbar-wrap"><div class="cbar-bg"><div class="cbar-fill ${cf}" data-t="${ev.conf}"></div></div><span class="cpct2">${ev.conf}%</span></div></td><td><button class="vsrc-btn" onclick="openDoc(${b.id},${ci})">View Source</button></td></tr>`;
+      h+=`<tr><td><strong style="font-size:11px;">${c.type}</strong><br><span class="dref">Criterion ${c.n}</span></td><td><div class="dref">${ev.doc}</div></td><td><div class="xval">${ev.xval}</div><div class="nval">${ev.nval}</div></td><td><div class="thresh">${ev.thresh}</div></td><td><span class="${ev.vc}">${ev.v}</span></td><td><div class="cbar-wrap"><div class="cbar-bg"><div class="cbar-fill ${cf}" data-t="${ev.conf}"></div></div><span class="cpct2">${ev.conf}%</span></div></td>${showSrc?`<td><button class="vsrc-btn" onclick="openDoc(${b.id},${ci})">View Source</button></td>`:''}</tr>`;
     });
     h+=`</tbody></table></div>`;
   }
   det.innerHTML=h;
   setTimeout(()=>det.querySelectorAll('.cbar-fill').forEach(bar=>{bar.style.width=bar.dataset.t+'%';}),60);
   if(!b.deb) renderClaude(b);
-  if(b.id===3&&!b.deb) renderHR(b);
+  if((b.id===3||(b.isCustom&&b.crit[1]?.v==='REVIEW'))&&!b.deb) renderHR(b);
 }
 
 // ── CLAUDE ─────────────────────────────────────────────
@@ -869,7 +1196,15 @@ function renderHR(b){
   const det=document.getElementById('b-detail');
   const panel=document.createElement('div'); panel.className='hr-panel';
   const sub=S.hrSubs[b.id];
-  panel.innerHTML=`<div class="hr-hdr"><h4>👁 Human Review Required — Criterion 2 (Experience)</h4><span class="hr-sub">Confidence: 58% — manual confirmation needed</span></div><div class="hr-body"><div class="hr-doc">MEHTA & SONS CONSTRUCTION WORKS<br>Experience Certificate & Project Portfolio<br>─────────────────────────────────<br>Sl | Project Description | Value | Status<br>1 | Const. of [ILLEGIBLE] Govt. Premises... | ₹[ILLEGIBLE] | Completed<br>2 | Renovation works... ₹1.2 [BLURRY] Crore | Appx... | Done<br>3 | Construction project [REST ILLEGIBLE]...<br>Certified by: [STAMP ILLEGIBLE]</div><div class="hr-partial"><span style="color:rgba(255,255,255,0.35);font-size:10px;display:block;margin-bottom:5px;">PARTIAL AI READ — LOW CONFIDENCE (58%)</span>"...3 project<span class="illeg">[s]</span>... government <span class="illeg">[type illegible]</span>...<br>value <span class="illeg">[not clearly legible]</span>... completed <span class="illeg">[date illegible]</span>...<br>₹<span class="illeg">[figure unclear — could be 1.2 or 1.02 Crore]</span>"</div>${sub?`<div class="hr-done show">✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${sub.time}<br>Decision: <strong>${sub.decision}</strong> | Notes: ${sub.notes||'(none)'}<br>Action logged to audit trail.</div>`:`<div class="hr-acts"><button class="btn btn-ok" style="flex:1;" onclick="submitHR(3,'COMPLIANT')">✓ Mark as Compliant</button><button class="btn btn-bad" style="flex:1;" onclick="submitHR(3,'NON-COMPLIANT')">✗ Mark as Non-Compliant</button></div><textarea class="hr-notes" id="hrn-3" placeholder="Reviewer notes (optional)..."></textarea><button class="btn btn-p" style="width:100%;" onclick="submitHR(3,null)">Submit Review</button><div class="hr-done" id="hrd-3"></div>`}</div>`;
+  const bId=b.id;
+  const conf=b.isCustom?72:58;
+  const docContent=b.isCustom
+    ? `<strong>${b.name.toUpperCase()}</strong><br>Manually Entered Project Descriptions<br>─────────────────────────────────<br>${(b.projdesc||'No project description provided.').replace(/\n/g,'<br>')}`
+    : `MEHTA &amp; SONS CONSTRUCTION WORKS<br>Experience Certificate &amp; Project Portfolio<br>─────────────────────────────────<br>Sl | Project Description | Value | Status<br>1 | Const. of [ILLEGIBLE] Govt. Premises... | ₹[ILLEGIBLE] | Completed<br>2 | Renovation works... ₹1.2 [BLURRY] Crore | Appx... | Done<br>3 | Construction project [REST ILLEGIBLE]...<br>Certified by: [STAMP ILLEGIBLE]`;
+  const partialContent=b.isCustom
+    ? `<span style="color:rgba(255,255,255,0.35);font-size:10px;display:block;margin-bottom:5px;">AI REVIEW PENDING — Project similarity assessment required</span>"Bidder has declared projects that require qualitative similarity verification against the tender criterion threshold of ₹1 Crore per project over last 5 years."`
+    : `<span style="color:rgba(255,255,255,0.35);font-size:10px;display:block;margin-bottom:5px;">PARTIAL AI READ — LOW CONFIDENCE (58%)</span>"...3 project<span class="illeg">[s]</span>... government <span class="illeg">[type illegible]</span>...<br>value <span class="illeg">[not clearly legible]</span>... completed <span class="illeg">[date illegible]</span>...<br>₹<span class="illeg">[figure unclear — could be 1.2 or 1.02 Crore]</span>"`;
+  panel.innerHTML=`<div class="hr-hdr"><h4>👁 Human Review Required — Criterion 2 (Experience)</h4><span class="hr-sub">Confidence: ${conf}% — manual confirmation needed</span></div><div class="hr-body"><div class="hr-doc">${docContent}</div><div class="hr-partial">${partialContent}</div>${sub?`<div class="hr-done show">✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${sub.time}<br>Decision: <strong>${sub.decision}</strong> | Notes: ${sub.notes||'(none)'}<br>Action logged to audit trail.</div>`:`<div class="hr-acts"><button class="btn btn-ok" style="flex:1;" onclick="submitHR(${bId},'COMPLIANT')">✓ Mark as Compliant</button><button class="btn btn-bad" style="flex:1;" onclick="submitHR(${bId},'NON-COMPLIANT')">✗ Mark as Non-Compliant</button></div><textarea class="hr-notes" id="hrn-${bId}" placeholder="Reviewer notes (optional)..."></textarea><button class="btn btn-p" style="width:100%;" onclick="submitHR(${bId},null)">Submit Review</button><div class="hr-done" id="hrd-${bId}"></div>`}</div>`;
   det.appendChild(panel);
 }
 
@@ -883,7 +1218,9 @@ function submitHR(bIdx,dec){
     hrd.innerHTML=`✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${t}<br>Decision: <strong>${dec}</strong> | Notes: ${notes||'(none)'}<br>Action logged to audit trail.`;
     hrd.classList.add('show');
   }
-  alog(`Human review submitted for Mehta & Sons (Criterion 2) by #OFC-2847 — ${dec}`);
+  const active=getActiveBidders();
+  const bidder=active.find(b=>b.id===bIdx)||{name:'Bidder #'+bIdx};
+  alog(`Human review submitted for ${bidder.name} (Criterion 2) by #OFC-2847 — ${dec}`);
   toast('Review submitted and logged ✓','success');
 }
 
@@ -907,6 +1244,27 @@ function openDoc(bIdx,ci){
 }
 
 // ── STAGE 4 ────────────────────────────────────────────
+function buildSummaryTable(){
+  if(customBidders.length===0) return; // keep demo table as-is
+  const tbody=document.querySelector('.sum-table tbody');
+  if(!tbody) return;
+  tbody.innerHTML=customBidders.map(b=>{
+    if(b.deb){
+      return `<tr><td><strong>${b.name}</strong>${b.isCustom?' <span style="font-size:10px;opacity:.6;">(manual)</span>':''}</td><td><span class="sbadge sb-deb">🚫 DEBARRED</span></td><td colspan="3" style="color:var(--red);font-size:11px;font-weight:600;">Evaluation halted — debarment registry match</td></tr>`;
+    }
+    const pass=b.crit.filter(c=>c.v==='PASS').length;
+    const fail=b.crit.filter(c=>c.v==='FAIL').length;
+    const rev=b.crit.filter(c=>c.v==='REVIEW').length;
+    const total=b.crit.length;
+    return `<tr><td><strong>${b.name}</strong>${b.isCustom?' <span style="font-size:10px;opacity:.6;">(manual)</span>':''}</td><td><span class="sbadge ${b.sc}">${b.icon} ${b.status}</span></td><td style="${pass===total?'color:var(--green);font-weight:700;':''}">${pass}/${total}</td><td style="${fail>0?'color:var(--red);font-weight:700;':''}">${fail>0?fail+' ('+b.crit.filter(c=>c.v==='FAIL').map((_,i)=>CRITERIA[i]?.type||'Criterion '+(i+1)).join(', ')+')':'0'}</td><td style="${rev>0?'color:var(--amber);font-weight:700;':''}">${rev>0?rev+' (Experience)':'0'}</td></tr>`;
+  }).join('');
+  // update debarment check line in header audit note
+  const debCount=customBidders.filter(b=>b.deb).length;
+  const auditNote=document.querySelector('.rpt-sec p');
+  if(auditNote && customBidders.length>0){
+    auditNote.textContent=`Evaluation complete. ${customBidders.length} bidder(s) evaluated. ${debCount} debarred. ${customBidders.filter(b=>!b.deb&&b.crit.filter(c=>c.v==='FAIL').length===0&&b.crit.filter(c=>c.v==='REVIEW').length===0).length} fully eligible.`;
+  }
+}
 function dlReport(){ toast('Report downloaded: CRPF_2024_CONST_0847_Evaluation_Report.pdf','success'); alog('Final report downloaded by Officer #OFC-2847'); }
 
 // ── INIT ───────────────────────────────────────────────
