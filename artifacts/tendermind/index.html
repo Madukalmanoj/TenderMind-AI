@@ -203,6 +203,16 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 .vsrc-btn { background:var(--blue-pale); color:var(--blue); border:1px solid #BFDBFE; border-radius:3px; padding:3px 9px; font-size:10px; font-weight:600; cursor:pointer; font-family:var(--font); white-space:nowrap; transition:all .15s; }
 .vsrc-btn:hover { background:#DBEAFE; }
 
+/* Provider tabs */
+.prov-tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:14px 0 6px; }
+.prov-tab { background:var(--gray-light); border:1.5px solid var(--gray-border); border-radius:6px; padding:8px 6px 7px; cursor:pointer; text-align:center; transition:all .15s; position:relative; }
+.prov-tab:hover { border-color:var(--blue); background:var(--blue-pale); }
+.prov-tab.sel { border-color:var(--blue); background:var(--blue-pale); box-shadow:0 0 0 2px rgba(37,99,235,.12); }
+.prov-tab .prov-ico { font-size:18px; display:block; margin-bottom:3px; }
+.prov-tab .prov-name { font-size:10px; font-weight:700; color:var(--navy); display:block; }
+.prov-tab .prov-free { position:absolute; top:-6px; right:4px; font-size:8px; background:var(--green); color:white; padding:1px 5px; border-radius:6px; font-weight:700; letter-spacing:.03em; }
+.prov-note { font-size:11px; color:var(--gray); background:var(--gray-light); border:1px solid var(--gray-border); border-radius:5px; padding:7px 11px; margin-bottom:12px; line-height:1.5; }
+.prov-note strong { color:var(--navy); }
 /* Claude */
 .claude-card { margin:0 22px 18px; background:#0F172A; border-radius:7px; border:1px solid rgba(99,102,241,0.28); overflow:hidden; }
 .cl-hdr { background:rgba(99,102,241,0.1); padding:9px 14px; display:flex; align-items:center; gap:9px; border-bottom:1px solid rgba(99,102,241,0.18); }
@@ -355,12 +365,28 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 
 <!-- API KEY MODAL -->
 <div class="modal-overlay active" id="modal-apikey">
-  <div class="modal-box">
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:14px;">
-      <div style="width:42px;height:42px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:21px;">🛡</div>
-      <div><h2 style="margin-bottom:1px;">TenderMind AI</h2><p style="margin:0;font-size:11px;color:var(--gray);">Intelligent Procurement Evaluation Platform</p></div>
+  <div class="modal-box" style="max-width:430px;">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:10px;">
+      <div style="width:42px;height:42px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;">🛡</div>
+      <div><h2 style="margin-bottom:1px;">TenderMind AI</h2><p style="margin:0;font-size:11px;color:var(--gray);">Select an AI provider to enable qualitative reasoning</p></div>
     </div>
-    <p>Enter your Anthropic API key to enable AI-powered qualitative reasoning. The app works fully without it — Claude only enhances Criterion 2 evaluation.</p>
+    <div class="prov-tabs">
+      <div class="prov-tab sel" id="pt-anthropic" onclick="selProvider('anthropic')">
+        <span class="prov-ico">🟣</span><span class="prov-name">Anthropic</span>
+      </div>
+      <div class="prov-tab" id="pt-groq" onclick="selProvider('groq')">
+        <span class="prov-free">FREE</span><span class="prov-ico">⚡</span><span class="prov-name">Groq</span>
+      </div>
+      <div class="prov-tab" id="pt-gemini" onclick="selProvider('gemini')">
+        <span class="prov-free">FREE</span><span class="prov-ico">💎</span><span class="prov-name">Gemini</span>
+      </div>
+      <div class="prov-tab" id="pt-openrouter" onclick="selProvider('openrouter')">
+        <span class="prov-free">FREE</span><span class="prov-ico">🔀</span><span class="prov-name">OpenRouter</span>
+      </div>
+    </div>
+    <div class="prov-note" id="prov-note">
+      <strong>Anthropic Claude</strong> — claude-3-5-sonnet-20241022. Requires a paid API key. Get one at <strong>console.anthropic.com</strong>.
+    </div>
     <input type="password" class="modal-input" id="api-key-in" placeholder="sk-ant-api03-..." autocomplete="off" />
     <div style="display:flex;gap:9px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveKey()">🔒 Enable AI Reasoning</button>
@@ -819,20 +845,56 @@ const var_blue='#1B4F8A';
 function toggleAud(){ document.getElementById('aud-drawer').classList.toggle('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
 
+// ── PROVIDER CONFIG ────────────────────────────────────
+const PROVIDERS = {
+  anthropic: {
+    name:'Anthropic Claude', label:'claude-3-5-sonnet', model:'claude-3-5-sonnet-20241022',
+    placeholder:'sk-ant-api03-...', free:false,
+    note:'<strong>Anthropic Claude</strong> — claude-3-5-sonnet-20241022. Requires a paid API key. Get one at <strong>console.anthropic.com</strong>.'
+  },
+  groq: {
+    name:'Groq', label:'llama-3.3-70b (Groq)', model:'llama-3.3-70b-versatile',
+    placeholder:'gsk_...', free:true,
+    note:'<strong>Groq</strong> — llama-3.3-70b-versatile. <strong>Free tier available.</strong> Get a free API key at <strong>console.groq.com</strong>. Very fast inference.'
+  },
+  gemini: {
+    name:'Google Gemini', label:'gemini-1.5-flash', model:'gemini-1.5-flash',
+    placeholder:'AIza...', free:true,
+    note:'<strong>Google Gemini</strong> — gemini-1.5-flash. <strong>Free tier available.</strong> Get a free API key at <strong>aistudio.google.com</strong>.'
+  },
+  openrouter: {
+    name:'OpenRouter', label:'llama-3.1-70b (free)', model:'meta-llama/llama-3.1-70b-instruct:free',
+    placeholder:'sk-or-v1-...', free:true,
+    note:'<strong>OpenRouter</strong> — routes to free open models. <strong>Free tier available.</strong> Get a key at <strong>openrouter.ai/keys</strong>.'
+  }
+};
+let selectedProvider = 'anthropic';
+
+function selProvider(p){
+  selectedProvider = p;
+  document.querySelectorAll('.prov-tab').forEach(t=>t.classList.remove('sel'));
+  document.getElementById('pt-'+p).classList.add('sel');
+  document.getElementById('api-key-in').placeholder = PROVIDERS[p].placeholder;
+  document.getElementById('api-key-in').value = '';
+  document.getElementById('prov-note').innerHTML = PROVIDERS[p].note;
+}
+
 // ── API KEY ────────────────────────────────────────────
 function saveKey(){
   const v=document.getElementById('api-key-in').value.trim();
   if(!v){toast('Please enter an API key','error');return;}
   S.apiKey=v;
+  S.provider=selectedProvider;
   closeModal('modal-apikey');
   const btn=document.getElementById('ai-btn');
   btn.className='ai-btn on';
-  document.getElementById('ai-txt').textContent='AI: Connected';
-  toast('AI reasoning enabled ✓','success');
-  alog('Anthropic API key configured — AI reasoning enabled');
+  const pCfg=PROVIDERS[selectedProvider];
+  document.getElementById('ai-txt').textContent=`AI: ${pCfg.name}`;
+  toast(`AI reasoning enabled — ${pCfg.name} ✓`,'success');
+  alog(`${pCfg.name} API key configured — AI reasoning enabled (${pCfg.model})`);
 }
 function skipKey(){ closeModal('modal-apikey'); alog('Session started (demo mode) — Officer #OFC-2847'); }
-function openKeyModal(){ if(!S.apiKey) document.getElementById('modal-apikey').classList.add('active'); }
+function openKeyModal(){ document.getElementById('modal-apikey').classList.add('active'); }
 
 // ── NAVIGATION ─────────────────────────────────────────
 function goStage(n){
@@ -1138,10 +1200,11 @@ function renderBidder(b){
 function renderClaude(b){
   const det=document.getElementById('b-detail');
   const div=document.createElement('div'); div.id='cl-'+b.id; div.className='claude-card';
+  const modelLabel = S.apiKey ? (PROVIDERS[S.provider||'anthropic']?.label||'AI model') : 'demo mode';
   if(S.claudeCache[b.id]){
-    div.innerHTML=`<div class="cl-hdr"><span>🤖</span><h4>AI Reasoning — Criterion 2: Similar Projects (Qualitative)</h4><span class="cl-tag">claude-3-5-sonnet</span></div><div class="cl-resp show">${mkClaudeResp(S.claudeCache[b.id])}</div>`;
+    div.innerHTML=`<div class="cl-hdr"><span>🤖</span><h4>AI Reasoning — Criterion 2: Similar Projects (Qualitative)</h4><span class="cl-tag">${modelLabel}</span></div><div class="cl-resp show">${mkClaudeResp(S.claudeCache[b.id])}</div>`;
   } else {
-    div.innerHTML=`<div class="cl-hdr"><span>🤖</span><h4>AI Reasoning — Criterion 2: Similar Projects (Qualitative)</h4><span class="cl-tag">claude-3-5-sonnet</span></div><div class="cl-loading" id="cll-${b.id}"><div class="cl-dots"><span></span><span></span><span></span></div><span>AI is reasoning about project similarity...</span></div><div class="cl-resp" id="clr-${b.id}"></div>`;
+    div.innerHTML=`<div class="cl-hdr"><span>🤖</span><h4>AI Reasoning — Criterion 2: Similar Projects (Qualitative)</h4><span class="cl-tag">${modelLabel}</span></div><div class="cl-loading" id="cll-${b.id}"><div class="cl-dots"><span></span><span></span><span></span></div><span>AI is reasoning about project similarity...</span></div><div class="cl-resp" id="clr-${b.id}"></div>`;
   }
   det.appendChild(div);
   if(!S.claudeCache[b.id]) callClaude(b);
@@ -1155,29 +1218,61 @@ function mkClaudeResp(text){
   return `<div class="cl-txt">${clean}</div><div class="cl-rec ${rc}">RECOMMENDATION: ${rl}</div>`;
 }
 
+const AI_PROMPT_SYS = "You are a government procurement evaluation AI. Evaluate whether the bidder's project experience meets the tender criterion. Be specific, cite the project descriptions, and give a clear recommendation. Respond in 3-4 sentences maximum. End with: RECOMMENDATION: COMPLIANT or RECOMMENDATION: NON-COMPLIANT or RECOMMENDATION: REQUIRES HUMAN REVIEW";
+function aiUserMsg(bId){ return `Tender Criterion: Minimum 3 similar construction projects completed in last 5 years, each valued at minimum ₹1 Crore.\n\nBidder's declared projects:\n${PROJECTS[bId]||'No project descriptions provided.'}\n\nDoes this bidder meet the criterion? Reason carefully about project similarity and value thresholds.`; }
+
 async function callClaude(b){
   const bId=b.id;
   if(!S.apiKey){
     await new Promise(r=>setTimeout(r,1700));
     const resp=DEMO_CLAUDE[bId]||DEMO_CLAUDE[0];
     S.claudeCache[bId]=resp; showClaudeResult(bId,resp);
-    alog(`AI reasoning complete for ${b.name} — Criterion 2`);
+    alog(`AI reasoning complete for ${b.name} — Criterion 2 (demo mode)`);
     return;
   }
+  const prov=S.provider||'anthropic';
+  const pCfg=PROVIDERS[prov];
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-3-5-sonnet-20241022',max_tokens:300,
-        system:"You are a government procurement evaluation AI. Evaluate whether the bidder's project experience meets the tender criterion. Be specific, cite the project descriptions, and give a clear recommendation. Respond in 3-4 sentences maximum. End with: RECOMMENDATION: COMPLIANT or RECOMMENDATION: NON-COMPLIANT or RECOMMENDATION: REQUIRES HUMAN REVIEW",
-        messages:[{role:'user',content:`Tender Criterion: Minimum 3 similar construction projects completed in last 5 years, each valued at minimum ₹1 Crore.\n\nBidder's declared projects:\n${PROJECTS[bId]}\n\nDoes this bidder meet the criterion? Reason carefully about project similarity and value thresholds.`}]})
-    });
-    const data=await res.json();
-    const text=data.content?.[0]?.text||'Unable to retrieve AI response.';
+    let text;
+    if(prov==='anthropic'){
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:pCfg.model,max_tokens:300,system:AI_PROMPT_SYS,messages:[{role:'user',content:aiUserMsg(bId)}]})
+      });
+      const d=await res.json();
+      if(d.error) throw new Error(d.error.message||'Anthropic API error');
+      text=d.content?.[0]?.text||'Unable to retrieve AI response.';
+    } else if(prov==='gemini'){
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${pCfg.model}:generateContent?key=${S.apiKey}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{role:'user',parts:[{text:AI_PROMPT_SYS+'\n\n'+aiUserMsg(bId)}]}],generationConfig:{maxOutputTokens:300}})
+      });
+      const d=await res.json();
+      if(d.error) throw new Error(d.error.message||'Gemini API error');
+      text=d.candidates?.[0]?.content?.parts?.[0]?.text||'Unable to retrieve AI response.';
+    } else {
+      // Groq and OpenRouter are OpenAI-compatible
+      const endpoint = prov==='groq'
+        ? 'https://api.groq.com/openai/v1/chat/completions'
+        : 'https://openrouter.ai/api/v1/chat/completions';
+      const extraHeaders = prov==='openrouter'
+        ? {'HTTP-Referer':'https://tendermind.ai','X-Title':'TenderMind AI'}
+        : {};
+      const res=await fetch(endpoint,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.apiKey,...extraHeaders},
+        body:JSON.stringify({model:pCfg.model,max_tokens:300,messages:[{role:'system',content:AI_PROMPT_SYS},{role:'user',content:aiUserMsg(bId)}]})
+      });
+      const d=await res.json();
+      if(d.error) throw new Error(d.error.message||pCfg.name+' API error');
+      text=d.choices?.[0]?.message?.content||'Unable to retrieve AI response.';
+    }
     S.claudeCache[bId]=text; showClaudeResult(bId,text);
-    alog(`Claude AI reasoning complete for ${b.name} (Criterion 2)`);
+    alog(`${pCfg.name} AI reasoning complete for ${b.name} (Criterion 2)`);
   } catch(e){
-    const fb='AI reasoning unavailable. Please check API key. RECOMMENDATION: REQUIRES HUMAN REVIEW';
+    const fb=`AI reasoning unavailable (${pCfg.name}): ${e.message||'Check API key'}. RECOMMENDATION: REQUIRES HUMAN REVIEW`;
     S.claudeCache[bId]=fb; showClaudeResult(bId,fb);
   }
 }
