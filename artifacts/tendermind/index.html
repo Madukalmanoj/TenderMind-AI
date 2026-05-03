@@ -6,6 +6,7 @@
 <title>TenderMind AI — Intelligent Procurement Evaluation Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -336,6 +337,31 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 .bm-del:hover { opacity:1; }
 .bm-count-note { font-size:11px; color:var(--gray); padding:8px 16px; background:var(--gray-light); border-top:1px solid var(--gray-border); font-style:italic; }
 
+/* PDF upload in Add Bidder modal */
+.ab-mode-tabs { display:flex; border-bottom:2px solid var(--gray-border); margin:-20px -22px 20px; }
+.ab-mode-tab { flex:1; padding:11px 14px; font-size:12px; font-weight:600; color:var(--gray); cursor:pointer; text-align:center; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; }
+.ab-mode-tab.sel { color:var(--blue); border-bottom-color:var(--blue); background:var(--blue-pale); }
+.ab-mode-tab:hover:not(.sel) { background:var(--gray-light); color:var(--text); }
+.ab-pdf-wrap { display:none; }
+.ab-pdf-zone { border:2px dashed var(--gray-border); border-radius:8px; padding:36px 22px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:16px; }
+.ab-pdf-zone:hover,.ab-pdf-zone.drag { border-color:var(--blue); background:var(--blue-pale); }
+.ab-pdf-zone .pz-ico { font-size:40px; margin-bottom:10px; }
+.ab-pdf-zone h4 { font-size:14px; font-weight:600; color:var(--text); margin-bottom:5px; }
+.ab-pdf-zone p { font-size:12px; color:var(--gray); }
+.ab-pdf-status { background:var(--navy); border-radius:7px; padding:16px 18px; color:white; font-size:13px; display:none; margin-bottom:14px; }
+.ab-pdf-status .ps-hdr { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-weight:600; font-size:13px; }
+.ab-pdf-status .ps-name { font-size:10px; font-family:var(--mono); color:rgba(255,255,255,0.55); display:block; margin-bottom:9px; }
+.ab-pdf-bar { height:4px; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden; margin-bottom:8px; }
+.ab-pdf-bar-fill { height:100%; width:0%; background:var(--blue); border-radius:2px; transition:width .5s ease; }
+.ab-pdf-step { font-size:11px; color:rgba(255,255,255,0.55); }
+.ab-ext-preview { background:var(--gray-light); border:1px solid var(--gray-border); border-radius:7px; padding:14px 16px; display:none; margin-bottom:16px; }
+.ab-ext-preview h4 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--gray-border); }
+.ab-ext-row { display:flex; gap:10px; padding:5px 0; border-bottom:1px solid var(--gray-border); font-size:12px; align-items:baseline; }
+.ab-ext-row:last-child { border-bottom:none; }
+.ab-ext-lbl { width:140px; flex-shrink:0; color:var(--gray); font-weight:500; }
+.ab-ext-val { flex:1; color:var(--text); font-weight:600; }
+.ab-ext-warn { font-size:11px; background:var(--amber-pale); border:1px solid #FDE68A; border-radius:5px; padding:7px 11px; color:#78350F; margin-top:10px; line-height:1.5; }
+.ab-ext-ok { font-size:11px; background:var(--green-pale); border:1px solid #A7F3D0; border-radius:5px; padding:7px 11px; color:#065F46; margin-top:10px; line-height:1.5; }
 /* Add Bidder Modal */
 .ab-modal-box { background:white; border-radius:8px; padding:0; max-width:640px; width:95%; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 24px 56px rgba(0,0,0,0.38); }
 .ab-mhdr { padding:18px 22px; border-bottom:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; background:var(--navy); }
@@ -419,10 +445,46 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 <div class="modal-overlay" id="modal-addbidder">
   <div class="ab-modal-box">
     <div class="ab-mhdr">
-      <h2>➕ Add Bidder Manually</h2>
+      <h2 id="ab-modal-title">➕ Add Bidder</h2>
       <button class="ab-mclose" onclick="closeModal('modal-addbidder')">×</button>
     </div>
     <div class="ab-mbody">
+      <!-- Mode tabs -->
+      <div class="ab-mode-tabs">
+        <div class="ab-mode-tab sel" id="abt-manual" onclick="switchBidderMode('manual')">✏️ Manual Entry</div>
+        <div class="ab-mode-tab" id="abt-pdf" onclick="switchBidderMode('pdf')">📄 Upload PDF</div>
+      </div>
+
+      <!-- PDF UPLOAD PANEL -->
+      <div class="ab-pdf-wrap" id="ab-pdf-wrap">
+        <div class="ab-pdf-zone" id="ab-pdf-zone"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="this.classList.remove('drag');handleBidderPDFDrop(event)"
+          onclick="document.getElementById('ab-pdf-input').click()">
+          <div class="pz-ico">📋</div>
+          <h4>Drop bidder PDF here, or click to browse</h4>
+          <p>Company profile, bid submission, experience certificate, financial statement</p>
+          <p style="margin-top:6px;font-size:11px;color:var(--blue);font-weight:600;">AI will extract company details, financials and project history automatically</p>
+        </div>
+        <input type="file" id="ab-pdf-input" accept=".pdf" style="display:none;" onchange="handleBidderPDFInput(event)" />
+        <!-- Progress status -->
+        <div class="ab-pdf-status" id="ab-pdf-status">
+          <div class="ps-hdr"><span id="ab-pdf-spin" style="font-size:18px;">⏳</span><span id="ab-pdf-stitle">Processing PDF…</span></div>
+          <span class="ps-name" id="ab-pdf-fname"></span>
+          <div class="ab-pdf-bar"><div class="ab-pdf-bar-fill" id="ab-pdf-bar-fill"></div></div>
+          <div class="ab-pdf-step" id="ab-pdf-step">Initialising PDF reader…</div>
+        </div>
+        <!-- Extracted preview -->
+        <div class="ab-ext-preview" id="ab-ext-preview">
+          <h4>🤖 AI-Extracted Bidder Details — Review Before Saving</h4>
+          <div id="ab-ext-rows"></div>
+          <div id="ab-ext-notice"></div>
+        </div>
+      </div>
+
+      <!-- MANUAL FORM (also shown after PDF fill) -->
+      <div id="ab-manual-wrap">
       <div class="ab-grid">
         <div class="ab-section-ttl">Company Identity</div>
         <div class="ab-field full">
@@ -507,9 +569,10 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
           <input class="ab-input" id="ab-isoexp" type="text" placeholder="e.g. March 2026" />
         </div>
       </div>
+      </div><!-- /ab-manual-wrap -->
     </div>
     <div class="ab-mftr">
-      <button class="btn btn-p" style="flex:1;" onclick="saveNewBidder()">➕ Add Bidder to Evaluation</button>
+      <button class="btn btn-p" style="flex:1;" id="ab-save-btn" onclick="saveNewBidder()">➕ Add Bidder to Evaluation</button>
       <button class="btn btn-s" onclick="closeModal('modal-addbidder')">Cancel</button>
     </div>
   </div>
@@ -1010,7 +1073,240 @@ function openAddBidder(){
   document.querySelectorAll('input[name="ab-deb"]').forEach(r=>r.checked=(r.value==='no'));
   document.querySelectorAll('input[name="ab-gst"]').forEach(r=>r.checked=(r.value==='yes'));
   document.querySelectorAll('input[name="ab-iso"]').forEach(r=>r.checked=(r.value==='yes'));
+  // reset PDF state
+  switchBidderMode('manual');
+  resetPDFState();
   document.getElementById('modal-addbidder').classList.add('active');
+}
+
+// ── PDF BIDDER UPLOAD ───────────────────────────────────
+function switchBidderMode(mode){
+  const isManual = mode==='manual';
+  document.getElementById('abt-manual').classList.toggle('sel', isManual);
+  document.getElementById('abt-pdf').classList.toggle('sel', !isManual);
+  document.getElementById('ab-manual-wrap').style.display = isManual ? '' : 'none';
+  document.getElementById('ab-pdf-wrap').style.display = isManual ? 'none' : 'block';
+  document.getElementById('ab-save-btn').textContent = isManual ? '➕ Add Bidder to Evaluation' : '✅ Confirm & Add Bidder';
+  document.getElementById('ab-save-btn').disabled = !isManual;
+  document.getElementById('ab-save-btn').style.opacity = isManual ? '1' : '0.45';
+}
+
+function resetPDFState(){
+  document.getElementById('ab-pdf-zone').style.display='block';
+  document.getElementById('ab-pdf-status').style.display='none';
+  document.getElementById('ab-ext-preview').style.display='none';
+  document.getElementById('ab-pdf-input').value='';
+  setPDFBar(0,'');
+}
+
+function setPDFBar(pct, msg){
+  document.getElementById('ab-pdf-bar-fill').style.width=pct+'%';
+  if(msg) document.getElementById('ab-pdf-step').textContent=msg;
+}
+
+function handleBidderPDFDrop(e){
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if(!f || f.type!=='application/pdf'){ toast('Please drop a PDF file','error'); return; }
+  extractBidderFromPDF(f);
+}
+function handleBidderPDFInput(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  extractBidderFromPDF(f);
+}
+
+async function extractBidderFromPDF(file){
+  document.getElementById('ab-pdf-zone').style.display='none';
+  document.getElementById('ab-ext-preview').style.display='none';
+  const status = document.getElementById('ab-pdf-status');
+  status.style.display='block';
+  document.getElementById('ab-pdf-stitle').textContent='Reading PDF…';
+  document.getElementById('ab-pdf-spin').textContent='⏳';
+  document.getElementById('ab-pdf-fname').textContent=file.name+' ('+((file.size/1024/1024).toFixed(1))+' MB)';
+  setPDFBar(10,'Loading PDF.js engine…');
+
+  try {
+    // Init PDF.js
+    if(typeof pdfjsLib === 'undefined') throw new Error('PDF.js failed to load. Check your connection.');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    setPDFBar(20,'Parsing PDF pages…');
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+    const totalPages = pdf.numPages;
+
+    // Extract text from all pages (cap at 12 for token efficiency)
+    let fullText = '';
+    const maxPages = Math.min(totalPages, 12);
+    for(let p=1; p<=maxPages; p++){
+      setPDFBar(20 + Math.round((p/maxPages)*35), `Extracting text — page ${p} of ${maxPages}…`);
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      fullText += content.items.map(i=>i.str).join(' ') + '\n';
+    }
+    fullText = fullText.trim().slice(0,12000); // limit to ~12K chars for AI prompt
+
+    if(fullText.length < 30){
+      throw new Error('Could not extract readable text from this PDF. It may be a scanned image. Try a text-based PDF.');
+    }
+
+    setPDFBar(60,'Sending to AI for extraction…');
+    document.getElementById('ab-pdf-stitle').textContent='AI Extracting Bidder Details…';
+    document.getElementById('ab-pdf-spin').textContent='🤖';
+
+    const extracted = await callAIBidderExtract(fullText, file.name);
+    setPDFBar(95,'Parsing AI response…');
+
+    fillFormFromExtraction(extracted, file.name);
+    setPDFBar(100,'Done!');
+    document.getElementById('ab-pdf-spin').textContent='✅';
+    document.getElementById('ab-pdf-stitle').textContent='Extraction Complete — Review details below';
+    alog(`PDF bidder extraction complete: ${file.name} — ${extracted.name||'name not found'}`);
+    toast('PDF processed — review extracted details','success');
+
+  } catch(err) {
+    document.getElementById('ab-pdf-spin').textContent='❌';
+    document.getElementById('ab-pdf-stitle').textContent='Extraction failed';
+    document.getElementById('ab-pdf-step').textContent=err.message||'Unknown error';
+    setPDFBar(100,'');
+    toast('PDF extraction failed: '+err.message,'error');
+  }
+}
+
+const BIDDER_EXTRACT_PROMPT = `You are a government procurement document parser. Extract bidder/company details from the document text below and return ONLY a valid JSON object with these exact keys (use null if not found):
+{
+  "name": "company name",
+  "gstin": "GST number (15 chars)",
+  "pan": "PAN number (10 chars)",
+  "entityType": "company|partnership|proprietorship|jv|govt",
+  "turnover": "best annual turnover in crores as a number (e.g. 7.5)",
+  "turnoverYears": "number of years turnover exceeded 5 crore (0-3)",
+  "projects": "count of qualifying construction projects last 5 years as number",
+  "projdesc": "brief description of key projects, each on a new line",
+  "gstValid": true or false,
+  "isoValid": true or false,
+  "isoexp": "ISO expiry date as string",
+  "isDebarred": false
+}
+Return ONLY the JSON object. No markdown, no explanation.`;
+
+async function callAIBidderExtract(text, filename){
+  if(!S.apiKey){
+    // demo mode — generate plausible demo extraction
+    await new Promise(r=>setTimeout(r,1400));
+    return {
+      name: filename.replace(/\.pdf$/i,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).trim(),
+      gstin: '07AABCT'+Math.floor(1000+Math.random()*9000)+'K1ZS',
+      pan: 'AABCT'+Math.floor(1000+Math.random()*9000)+'K',
+      entityType:'company', turnover:+(5+Math.random()*8).toFixed(1),
+      turnoverYears:2, projects:3+Math.floor(Math.random()*3),
+      projdesc:'Construction of government staff quarters, ₹2.1 Crore, 2023\nRenovation of central facility, ₹1.8 Crore, 2022',
+      gstValid:true, isoValid:true, isoexp:'December 2025', isDebarred:false,
+      _demo:true
+    };
+  }
+  const prov = S.provider||'anthropic';
+  const pCfg = PROVIDERS[prov];
+  const userMsg = BIDDER_EXTRACT_PROMPT + '\n\nDocument text:\n' + text;
+
+  let rawText;
+  if(prov==='anthropic'){
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:pCfg.model,max_tokens:600,messages:[{role:'user',content:userMsg}]})
+    });
+    const d = await res.json();
+    if(d.error) throw new Error(d.error.message);
+    rawText = d.content?.[0]?.text||'{}';
+  } else if(prov==='gemini'){
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${pCfg.model}:generateContent?key=${S.apiKey}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{role:'user',parts:[{text:userMsg}]}],generationConfig:{maxOutputTokens:600}})
+    });
+    const d = await res.json();
+    if(d.error) throw new Error(d.error.message);
+    rawText = d.candidates?.[0]?.content?.parts?.[0]?.text||'{}';
+  } else {
+    const endpoint = prov==='groq'
+      ? 'https://api.groq.com/openai/v1/chat/completions'
+      : 'https://openrouter.ai/api/v1/chat/completions';
+    const extraH = prov==='openrouter' ? {'HTTP-Referer':'https://tendermind.ai','X-Title':'TenderMind AI'} : {};
+    const res = await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.apiKey,...extraH},
+      body:JSON.stringify({model:pCfg.model,max_tokens:600,
+        messages:[{role:'system',content:'You are a JSON extraction API. Return only valid JSON, no markdown.'},{role:'user',content:userMsg}]})
+    });
+    const d = await res.json();
+    if(d.error) throw new Error(d.error.message);
+    rawText = d.choices?.[0]?.message?.content||'{}';
+  }
+  return parseBidderJSON(rawText);
+}
+
+function parseBidderJSON(raw){
+  try {
+    // strip markdown code blocks if present
+    const clean = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    return JSON.parse(clean);
+  } catch(e){
+    // try to extract JSON object from raw text
+    const m = raw.match(/\{[\s\S]*\}/);
+    if(m){ try { return JSON.parse(m[0]); } catch(e2){} }
+    throw new Error('AI returned invalid JSON. Try again or use manual entry.');
+  }
+}
+
+function fillFormFromExtraction(data, filename){
+  // Fill form fields
+  if(data.name) document.getElementById('ab-name').value = data.name;
+  if(data.gstin) document.getElementById('ab-gstin').value = data.gstin.toUpperCase();
+  if(data.pan) document.getElementById('ab-pan').value = data.pan.toUpperCase();
+  if(data.entityType) document.getElementById('ab-type').value = data.entityType;
+  if(data.turnover!=null) document.getElementById('ab-turnover').value = data.turnover;
+  if(data.turnoverYears!=null) document.getElementById('ab-turnover-years').value = Math.min(3,Math.max(0,parseInt(data.turnoverYears)||0));
+  if(data.projects!=null) document.getElementById('ab-projects').value = parseInt(data.projects)||0;
+  if(data.projdesc) document.getElementById('ab-projdesc').value = data.projdesc;
+  if(data.isoexp) document.getElementById('ab-isoexp').value = data.isoexp;
+  document.querySelectorAll('input[name="ab-gst"]').forEach(r=>r.checked=(r.value===(data.gstValid!==false?'yes':'no')));
+  document.querySelectorAll('input[name="ab-iso"]').forEach(r=>r.checked=(r.value===(data.isoValid!==false?'yes':'no')));
+  document.querySelectorAll('input[name="ab-deb"]').forEach(r=>r.checked=(r.value===(data.isDebarred?'yes':'no')));
+
+  // Show extraction preview
+  const rows = [
+    ['Company Name', data.name||'—'],
+    ['GSTIN', data.gstin||'—'],
+    ['PAN', data.pan||'—'],
+    ['Entity Type', data.entityType||'—'],
+    ['Best Turnover', data.turnover!=null ? '₹'+data.turnover+' Crore' : '—'],
+    ['Years ≥ ₹5Cr', data.turnoverYears!=null ? data.turnoverYears+' year(s)' : '—'],
+    ['Qualifying Projects', data.projects!=null ? data.projects+' project(s)' : '—'],
+    ['GST Status', data.gstValid!==false?'✅ Active':'❌ Invalid'],
+    ['ISO 9001:2015', data.isoValid!==false?'✅ Valid':'❌ Not found'],
+  ];
+  document.getElementById('ab-ext-rows').innerHTML = rows.map(([l,v])=>
+    `<div class="ab-ext-row"><span class="ab-ext-lbl">${l}</span><span class="ab-ext-val">${v}</span></div>`
+  ).join('');
+
+  const notice = document.getElementById('ab-ext-notice');
+  const missing = ['name','gstin'].filter(k=>!data[k]||data[k]==='—'||data[k]==='null');
+  if(data._demo){
+    notice.innerHTML='<div class="ab-ext-warn">⚠ <strong>Demo mode</strong> — running without an API key. Fields pre-filled with simulated data. Connect an AI provider to extract real data from PDFs.</div>';
+  } else if(missing.length){
+    notice.innerHTML='<div class="ab-ext-warn">⚠ Some required fields could not be extracted ('+missing.join(', ')+'). Please fill them in manually below before saving.</div>';
+  } else {
+    notice.innerHTML='<div class="ab-ext-ok">✓ All key fields extracted successfully. Review the form below and click "Confirm & Add Bidder".</div>';
+  }
+  document.getElementById('ab-ext-preview').style.display='block';
+
+  // Switch to manual form for review
+  document.getElementById('ab-manual-wrap').style.display='block';
+  document.getElementById('ab-save-btn').disabled=false;
+  document.getElementById('ab-save-btn').style.opacity='1';
+  document.getElementById('ab-save-btn').textContent='✅ Confirm & Add Bidder';
 }
 
 function saveNewBidder(){
