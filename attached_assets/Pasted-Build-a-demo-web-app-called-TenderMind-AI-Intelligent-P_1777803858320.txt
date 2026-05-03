@@ -1,0 +1,239 @@
+Build a demo web app called "TenderMind AI — Intelligent Procurement Evaluation Platform" for a hackathon demo. This is a DEMO ONLY — everything runs in the browser with Claude API for intelligence. No real backend, no real OCR, no database.
+
+## STACK
+- Single HTML file with vanilla JS + CSS (zero build step, runs instantly on Replit)
+- Anthropic Claude API called directly from browser fetch()
+- All state in-memory (JavaScript objects)
+- No external dependencies except Google Fonts
+
+---
+
+## VISUAL DESIGN
+
+Professional government dashboard aesthetic:
+- Color palette: Deep navy #0A1628 (background), White #FFFFFF (cards), Government blue #1B4F8A (primary), Amber #F59E0B (warnings/flags), Green #10B981 (pass), Red #EF4444 (fail), Gray #6B7280 (neutral)
+- Font: "IBM Plex Sans" for UI, "IBM Plex Mono" for extracted values and IDs
+- Clean, dense, data-forward layout — like a real government procurement tool
+- No gradients, no playful elements — serious, trustworthy, institutional
+
+---
+
+## APP STRUCTURE
+
+Four sequential stages shown as a progress stepper at the top:
+1. Tender Upload → 2. Criteria Review & Approval → 3. Bidder Evaluation → 4. Final Report
+
+---
+
+## STAGE 1: TENDER UPLOAD
+
+Left panel — Upload area:
+- Large dashed upload zone: "Upload Tender Document (PDF)"
+- Below it: "Or load a demo tender" button (pre-fills everything)
+- When demo is loaded, show a fake filename: "CRPF_Construction_Tender_2024.pdf" with file size
+
+Right panel — What gets extracted (appears after upload/demo load):
+- Show a loading animation for 2 seconds ("Reading tender document...")
+- Then display extracted metadata:
+  - Tender ID: CRPF/2024/CONST/0847
+  - Department: Central Reserve Police Force
+  - Category: Civil Construction Services  
+  - Submission Deadline: 15 June 2024
+  - Estimated Value: ₹12.5 Crore
+
+The demo tender content (hardcode this, do NOT call Claude for this — it's instant):
+A construction services tender with exactly 4 eligibility criteria:
+1. FINANCIAL: Minimum annual turnover of ₹5 Crore in any 2 of last 3 financial years (Mandatory)
+2. EXPERIENCE: Minimum 3 similar construction projects completed in last 5 years, each valued ≥ ₹1 Crore (Mandatory)  
+3. COMPLIANCE: Valid GST registration certificate (Mandatory)
+4. CERTIFICATION: ISO 9001:2015 certification, currently valid (Mandatory)
+
+"Proceed to Criteria Review" button appears after extraction.
+
+---
+
+## STAGE 2: CRITERIA REVIEW & APPROVAL
+
+Header: "Review Extracted Criteria Before Evaluation Begins"
+Subtext: "Correct any errors here. Once approved, these criteria will be applied consistently to all bidders."
+
+Show 4 criteria cards, each containing:
+- Criterion number and type badge (FINANCIAL / EXPERIENCE / COMPLIANCE / CERTIFICATION)
+- Full criterion text (editable textarea — officer can fix AI errors)
+- Threshold value highlighted in blue pill (e.g. "₹5 Crore", "3 projects", "Valid GST", "ISO 9001:2015")
+- Source reference: "Extracted from: Clause 4.2, Page 8"
+- Mandatory/Optional toggle (all mandatory in demo)
+- Evaluation method badge: "RULE ENGINE" for numeric, "AI + HUMAN REVIEW" for qualitative
+
+Make Criterion 2 (similar projects) show the "AI + HUMAN REVIEW" badge with a yellow info tooltip:
+"Qualitative criterion — AI will reason about project similarity but a human must confirm every verdict"
+
+Bottom: Big "Approve Criteria & Begin Evaluation" button (green)
+- Clicking it shows a confirmation modal: "You are approving 4 criteria. These will be locked during evaluation. Proceed?"
+- After approval, criteria cards show a green "APPROVED ✓" stamp overlay
+
+---
+
+## STAGE 3: BIDDER EVALUATION
+
+### Left sidebar — Bidder List
+Show 5 demo bidders as clickable rows:
+1. Rajesh Constructions Pvt. Ltd. — Status: ELIGIBLE ✓ (green)
+2. Sharma Infrastructure Ltd. — Status: NOT ELIGIBLE ✗ (red)  
+3. BuildRight JV (Consortium) — Status: ELIGIBLE ✓ (green)
+4. Mehta & Sons Construction — Status: REVIEW NEEDED ⚠ (amber)
+5. Pioneer Civil Works — Status: DEBARRED 🚫 (dark red)
+
+Each row shows: company name, status badge, overall confidence percentage
+
+Clicking a bidder opens their detail view in the main panel.
+
+### Main Panel — Bidder Detail View
+
+**Top section — Company header:**
+- Company name (large)
+- GST number, PAN number (monospace font)
+- Debarment check result (green shield "VERIFIED - Not on debarred list" OR red shield "DEBARRED - Match found in CPPP registry")
+- COI check: "No conflict of interest detected" or flag
+- For BuildRight JV: show JV structure — "Joint Venture: BuildRight Ltd (Lead, 60%) + Apex Structures (Partner, 40%)"
+
+**Middle section — Criterion-by-criterion evaluation table:**
+
+For each of the 4 criteria, show a row with:
+- Criterion name
+- Document used (e.g. "Audited Balance Sheet FY2023-24.pdf, Page 3")
+- Extracted value (monospace, highlighted): e.g. "₹ 7,20,00,000"
+- Normalised value: "= ₹7.2 Crore"
+- Threshold: "Required: ₹5 Crore"
+- Verdict badge: PASS (green) / FAIL (red) / REVIEW (amber)
+- Confidence bar (horizontal, color-coded)
+- "View Source" button
+
+**"View Source" button behavior:**
+Opens a modal showing:
+- Left half: A fake document image (create a realistic-looking HTML/CSS mock of a government PDF page with text, tables, a rubber stamp, and a highlighted yellow box showing the relevant number)
+- Right half: Extraction details — what was read, confidence score, method used
+
+**Confidence behavior per bidder:**
+
+Bidder 1 (Rajesh Constructions) — All 4 criteria PASS, confidence 88-95%, clean documents
+Bidder 2 (Sharma Infrastructure) — Criterion 1 FAIL (turnover ₹3.1 Crore < ₹5 Crore required), confidence 91%
+Bidder 3 (BuildRight JV) — PASS all criteria, show JV aggregation: "Lead partner contributes ₹4.2Cr + Partner contributes ₹3.1Cr = ₹7.3Cr combined, meets threshold per Clause 7.4 JV Rules"
+Bidder 4 (Mehta & Sons) — Criterion 2 confidence 58% (scanned certificate, partially readable). Show REVIEW NEEDED. Show raw "document image" with poor quality visual effect (blur + noise via CSS filter). Show what was partially read: "...3 project[s]... value not clearly legible..."
+Bidder 5 (Pioneer Civil Works) — Red banner at top: "EVALUATION HALTED — Vendor match found in CPPP Debarred Registry. Registration No. GSTIN 29AACP1234F matches debarred entity. Referred to senior officer."
+
+**For Bidder 4 (REVIEW NEEDED) — Human Review Panel:**
+Show a special card at the bottom:
+- Title: "Human Review Required — Criterion 2"
+- Shows the blurry document image
+- Shows what AI partially read
+- Two action buttons: "✓ Mark as Compliant" and "✗ Mark as Non-Compliant"  
+- A text field: "Reviewer notes"
+- "Submit Review" button
+- After submission: shows "Reviewed by: Officer ID #OFC-2847 | Timestamp: [current time] | Action logged to audit trail"
+
+**Criteria Anomaly Alert (show as a dismissible banner at top of stage 3):**
+Amber banner: "⚠ Anomaly Detected: The turnover threshold of ₹5 Crore is in the 94th percentile for similar construction tenders in the last 12 months (median: ₹2.1 Crore). This has been flagged for senior officer review. This is not an accusation — it is a transparency signal."
+
+---
+
+## STAGE 4: FINAL REPORT
+
+Show a professional report preview card:
+
+**Report Header:**
+- CRPF Tender Evaluation Report
+- Tender ID: CRPF/2024/CONST/0847
+- Generated: [current date and time]
+- Cryptographic Hash: SHA-256: a3f8c2e1d4b7... (fake but realistic)
+- Status: DIGITALLY SIGNED ✓
+
+**Summary Table:**
+| Bidder | Overall Verdict | Criteria Passed | Criteria Failed | Criteria Reviewed |
+|---|---|---|---|---|
+| Rajesh Constructions | ELIGIBLE | 4/4 | 0 | 0 |
+| Sharma Infrastructure | NOT ELIGIBLE | 3/4 | 1 (Turnover) | 0 |
+| BuildRight JV | ELIGIBLE | 4/4 | 0 | 0 |
+| Mehta & Sons | MANUAL REVIEW | 3/4 | 0 | 1 (Experience) |
+| Pioneer Civil Works | DEBARRED | — | — | — |
+
+**Audit Trail section:**
+Timeline of every action taken:
+- 10:42:03 — Tender document uploaded
+- 10:43:31 — Criteria extracted (4 criteria, 1 qualitative)
+- 10:44:15 — Criteria approved by Officer ID #OFC-2847
+- 10:44:16 — Debarment checks run: 5 bidders, 1 match found
+- 10:45:02 — Bidder 1 evaluated: ELIGIBLE (auto-committed, confidence 92%)
+- 10:45:18 — Bidder 2 evaluated: NOT ELIGIBLE (auto-committed, confidence 91%)
+- 10:45:31 — Bidder 3 evaluated: ELIGIBLE (JV aggregation applied)
+- 10:45:44 — Bidder 4 flagged for human review (confidence 58%)
+- 10:47:22 — Human review submitted for Bidder 4 by Officer #OFC-2847
+- 10:47:23 — Final report generated and signed
+
+**Download Report button** — clicking shows a toast: "Report downloaded: CRPF_2024_CONST_0847_Evaluation_Report.pdf"
+
+**Processing Stats bar at bottom:**
+- Total time: 38 minutes (simulated) vs 3 days (manual)
+- Documents processed: 47
+- Auto-committed verdicts: 18/20
+- Human reviews required: 2/20  
+- Confidence avg: 84.2%
+
+---
+
+## CLAUDE API USAGE
+
+Only call Claude API for ONE thing — the qualitative criterion reasoning for Criterion 2 (similar projects).
+
+When evaluating any bidder's Criterion 2, call Claude with:
+
+System prompt:
+"You are a government procurement evaluation AI. Evaluate whether the bidder's project experience meets the tender criterion. Be specific, cite the project descriptions, and give a clear recommendation. Respond in 3-4 sentences maximum. End with: RECOMMENDATION: COMPLIANT or RECOMMENDATION: NON-COMPLIANT or RECOMMENDATION: REQUIRES HUMAN REVIEW"
+
+User message:
+"Tender Criterion: Minimum 3 similar construction projects completed in last 5 years, each valued at minimum ₹1 Crore.
+
+Bidder's declared projects:
+1. Construction of 24 staff quarters, CISF Camp Ghaziabad — Completed March 2023 — Value: ₹2.3 Crore
+2. Renovation of 3 government office buildings, PWD Delhi — Completed August 2022 — Value: ₹1.8 Crore  
+3. Construction of boundary wall and guardpost, BSF Camp — Completed January 2021 — Value: ₹0.9 Crore
+
+Does this bidder meet the criterion? Reason carefully about project similarity and value thresholds."
+
+Show a "AI is reasoning about project similarity..." loading state (1.5 seconds) then display Claude's response in a styled reasoning card with the recommendation badge.
+
+---
+
+## GLOBAL UI ELEMENTS
+
+**Top navigation bar:**
+- TenderMind AI logo (left) — shield icon + text
+- Tender ID pill (center): CRPF/2024/CONST/0847
+- Officer badge (right): Officer #OFC-2847 | Logged in
+- Stage progress stepper: 1 → 2 → 3 → 4
+
+**Floating audit log panel** (collapsible, bottom-right corner):
+- Small FAB button "📋 Audit Log"
+- Opens a drawer showing real-time log of every action taken in the current session
+- Each entry: timestamp + action description
+- Auto-appends as user takes actions
+
+**API Key input:**
+- On first load, show a minimal modal: "Enter your Anthropic API Key to enable AI reasoning"
+- Store in memory (not localStorage)
+- Small lock icon in nav showing "AI: Connected" once entered
+
+---
+
+## IMPORTANT NOTES
+
+1. Do NOT use any external JS libraries or CDN imports — pure vanilla JS only
+2. The fake "document viewer" in the source modal should look like a real government PDF page — create it with HTML/CSS: letterhead, table, rubber stamp effect, signatures, and a yellow highlight box
+3. The blurry document for Bidder 4 should use CSS filter: blur(1.5px) contrast(0.8) on the fake document to simulate a bad scan
+4. Every button click should append to the audit log with the current timestamp
+5. All INR amounts should display in Indian number format (lakhs/crores) consistently
+6. The app should work entirely without the Claude API key — all demo data is hardcoded, Claude only enhances the qualitative reasoning display
+7. Make the confidence bars animate on load — they should fill from 0 to their final value over 800ms
+8. The overall feel should be: this is real government software, not a hackathon toy
+
+Build the entire app in a single index.html file.

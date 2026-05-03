@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TenderMind AI — Intelligent Procurement Evaluation Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #0A1628; --navy-2: #0f1e38; --navy-3: #162444;
+  --card: #FFFFFF;
+  --blue: #1B4F8A; --blue-light: #2563EB; --blue-pale: #EFF6FF;
+  --amber: #F59E0B; --amber-pale: #FFFBEB;
+  --green: #10B981; --green-pale: #ECFDF5;
+  --red: #EF4444; --red-dark: #7F1D1D; --red-pale: #FEF2F2;
+  --gray: #6B7280; --gray-light: #F9FAFB; --gray-border: #E5E7EB;
+  --text: #111827; --text-2: #4B5563;
+  --font: 'IBM Plex Sans', sans-serif; --mono: 'IBM Plex Mono', monospace;
+}
+body { font-family: var(--font); background: var(--navy); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+/* MODAL */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:white; border-radius:8px; padding:32px; max-width:520px; width:92%; box-shadow:0 24px 56px rgba(0,0,0,0.35); }
+.modal-box h2 { font-size:20px; font-weight:700; color:var(--navy); margin-bottom:6px; }
+.modal-box p { font-size:13px; color:var(--text-2); line-height:1.6; margin-bottom:18px; }
+.modal-input { width:100%; padding:10px 14px; border:1.5px solid var(--gray-border); border-radius:6px; font-family:var(--mono); font-size:13px; background:var(--gray-light); margin-bottom:16px; outline:none; }
+.modal-input:focus { border-color:var(--blue-light); background:white; }
+
+/* NAV */
+#top-nav { background:var(--navy-2); border-bottom:1px solid rgba(255,255,255,0.07); padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.nav-logo { display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; color:white; }
+.nav-shield { width:32px; height:32px; background:var(--blue); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+.nav-logo span { color:#93C5FD; }
+.tender-pill { background:rgba(27,79,138,0.45); border:1px solid rgba(59,130,246,0.28); border-radius:20px; padding:4px 14px; font-family:var(--mono); font-size:12px; color:#93C5FD; font-weight:500; }
+.nav-right { display:flex; align-items:center; gap:12px; }
+.officer-badge { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:4px 12px; font-size:11px; color:rgba(255,255,255,0.65); }
+.officer-dot { width:7px; height:7px; background:var(--green); border-radius:50%; }
+.ai-btn { display:flex; align-items:center; gap:6px; font-size:11px; padding:4px 11px; border-radius:12px; border:1px solid; cursor:pointer; transition:all .2s; font-family:var(--font); }
+.ai-btn.off { color:#F87171; border-color:rgba(239,68,68,0.28); background:rgba(239,68,68,0.07); }
+.ai-btn.on { color:#34D399; border-color:rgba(16,185,129,0.28); background:rgba(16,185,129,0.07); }
+
+/* STEPPER */
+#stepper { background:var(--navy-3); border-bottom:1px solid rgba(255,255,255,0.05); padding:0 24px; display:flex; align-items:center; height:50px; }
+.step { display:flex; align-items:center; gap:9px; padding:0 14px; height:100%; cursor:pointer; border-radius:4px; transition:background .2s; }
+.step:hover { background:rgba(255,255,255,0.04); }
+.step-n { width:23px; height:23px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; border:1.5px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.35); transition:all .3s; flex-shrink:0; }
+.step-lbl { font-size:12px; font-weight:500; color:rgba(255,255,255,0.35); transition:color .3s; white-space:nowrap; }
+.step-line { width:24px; height:1px; background:rgba(255,255,255,0.09); flex-shrink:0; }
+.step.active .step-n { background:var(--blue); border-color:var(--blue); color:white; }
+.step.active .step-lbl { color:white; }
+.step.done .step-n { background:var(--green); border-color:var(--green); color:white; }
+.step.done .step-lbl { color:#34D399; }
+
+/* MAIN */
+#main { padding:24px; max-width:1300px; margin:0 auto; }
+.stage { display:none; }
+.stage.active { display:block; }
+.page-ttl { font-size:21px; font-weight:700; color:white; margin-bottom:3px; }
+.page-sub { font-size:13px; color:rgba(255,255,255,0.45); margin-bottom:18px; }
+
+/* CARD */
+.card { background:white; border-radius:8px; border:1px solid var(--gray-border); overflow:hidden; }
+.ch { padding:14px 18px; border-bottom:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; }
+.ch h3 { font-size:13px; font-weight:600; color:var(--text); }
+.cb { padding:18px; }
+
+/* STAGE 1 */
+.s1-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+@media(max-width:760px){.s1-grid{grid-template-columns:1fr;}}
+.upload-zone { border:2px dashed var(--gray-border); border-radius:7px; padding:36px 18px; text-align:center; background:var(--gray-light); cursor:pointer; transition:all .2s; }
+.upload-zone:hover { border-color:var(--blue-light); background:var(--blue-pale); }
+.upload-zone .uico { font-size:34px; margin-bottom:10px; }
+.upload-zone h4 { font-size:14px; font-weight:600; margin-bottom:5px; }
+.upload-zone p { font-size:12px; color:var(--gray); }
+.file-pill { display:none; background:var(--green-pale); border:1px solid rgba(16,185,129,0.2); border-radius:7px; padding:12px 15px; align-items:center; gap:11px; margin-bottom:12px; }
+.file-pill.show { display:flex; }
+.file-pill .fn { font-family:var(--mono); font-size:12px; font-weight:600; }
+.file-pill .fs { font-size:11px; color:var(--gray); }
+.divider { display:flex; align-items:center; gap:10px; margin:14px 0; }
+.divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--gray-border); }
+.divider span { font-size:11px; color:var(--gray); }
+.extract-load { text-align:center; padding:28px; }
+.spin { width:32px; height:32px; border:3px solid var(--gray-border); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 10px; }
+@keyframes spin{to{transform:rotate(360deg);}}
+.extract-load p { font-size:13px; color:var(--gray); }
+.meta-row { display:flex; padding:9px 0; border-bottom:1px solid var(--gray-border); align-items:flex-start; gap:10px; }
+.meta-row:last-child { border-bottom:none; }
+.meta-lbl { font-size:11px; font-weight:600; color:var(--gray); text-transform:uppercase; letter-spacing:.05em; min-width:120px; padding-top:1px; }
+.meta-val { font-size:12px; font-weight:500; color:var(--text); font-family:var(--mono); }
+.mbadge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; background:var(--blue-pale); color:var(--blue); text-transform:uppercase; }
+
+/* BTN */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:9px 18px; border-radius:6px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .2s; }
+.btn-p { background:var(--blue); color:white; } .btn-p:hover { background:#1a4477; }
+.btn-s { background:white; color:var(--text); border:1.5px solid var(--gray-border); } .btn-s:hover { background:var(--gray-light); }
+.btn-ok { background:var(--green); color:white; } .btn-ok:hover { background:#0ea271; }
+.btn-bad { background:var(--red); color:white; } .btn-bad:hover { background:#dc3030; }
+.btn-outline { background:transparent; color:var(--blue-light); border:1.5px solid var(--blue-light); } .btn-outline:hover { background:var(--blue-pale); }
+.btn-lg { padding:13px 22px; font-size:14px; width:100%; }
+.btn-sm { padding:5px 10px; font-size:11px; }
+
+/* STAGE 2 */
+.s2-hdr { background:white; border-radius:8px; border:1px solid var(--gray-border); padding:18px 22px; margin-bottom:18px; }
+.s2-hdr h2 { font-size:17px; font-weight:700; color:var(--navy); margin-bottom:3px; }
+.s2-hdr p { font-size:12px; color:var(--gray); }
+.crit-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+@media(max-width:860px){.crit-grid{grid-template-columns:1fr;}}
+.crit-card { background:white; border-radius:8px; border:1px solid var(--gray-border); position:relative; overflow:hidden; transition:box-shadow .2s; }
+.crit-card:hover { box-shadow:0 4px 14px rgba(0,0,0,0.08); }
+.cc-hdr { padding:12px 15px; border-bottom:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; }
+.cc-num { font-size:11px; color:var(--gray); font-weight:600; }
+.typ-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.typ-fin { background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; }
+.typ-exp { background:#F5F3FF; color:#6D28D9; border:1px solid #DDD6FE; }
+.typ-com { background:var(--green-pale); color:#065F46; border:1px solid #A7F3D0; }
+.typ-cert { background:#FFF7ED; color:#92400E; border:1px solid #FED7AA; }
+.cc-body { padding:14px 15px; }
+.crit-ta { width:100%; font-family:var(--font); font-size:12px; color:var(--text); border:1.5px solid var(--gray-border); border-radius:5px; padding:9px 11px; resize:vertical; min-height:68px; line-height:1.5; background:var(--gray-light); transition:border-color .2s; }
+.crit-ta:focus { outline:none; border-color:var(--blue-light); background:white; }
+.crit-meta { margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.thresh-pill { background:#EFF6FF; border:1px solid #BFDBFE; color:#1D4ED8; font-family:var(--mono); font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; }
+.src-ref { font-size:10px; color:var(--gray); font-style:italic; }
+.cc-ftr { padding:10px 15px; border-top:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; background:var(--gray-light); }
+.mand-row { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text-2); font-weight:500; }
+.tog { width:34px; height:19px; background:var(--green); border-radius:10px; position:relative; cursor:pointer; flex-shrink:0; }
+.tog::after { content:''; position:absolute; width:15px; height:15px; background:white; border-radius:50%; top:2px; right:2px; transition:right .2s; }
+.meth-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.meth-rule { background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; }
+.meth-ai { background:var(--amber-pale); color:#92400E; border:1px solid #FCD34D; }
+.tt-wrap { display:inline-flex; align-items:center; gap:4px; cursor:help; }
+.tt-ico { width:15px; height:15px; background:var(--amber); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:white; }
+.approved-stamp { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-12deg); background:rgba(16,185,129,0.1); border:3px solid var(--green); border-radius:7px; padding:8px 18px; font-size:18px; font-weight:800; color:var(--green); text-transform:uppercase; letter-spacing:.1em; pointer-events:none; z-index:10; white-space:nowrap; }
+.crit-card.approved .approved-stamp { display:block; }
+.crit-card.approved { opacity:.82; }
+
+/* STAGE 3 */
+.anomaly { background:var(--amber-pale); border:1px solid #FCD34D; border-radius:8px; padding:11px 15px; margin-bottom:14px; display:flex; align-items:flex-start; gap:11px; position:relative; }
+.anomaly .aico { font-size:17px; flex-shrink:0; margin-top:1px; }
+.anomaly .atxt { font-size:12px; color:#78350F; line-height:1.55; }
+.anomaly .atxt strong { font-weight:700; }
+.aclose { position:absolute; top:7px; right:9px; background:none; border:none; font-size:17px; color:#78350F; cursor:pointer; opacity:.55; line-height:1; }
+.aclose:hover { opacity:1; }
+.s3-layout { display:grid; grid-template-columns:270px 1fr; gap:14px; }
+@media(max-width:860px){.s3-layout{grid-template-columns:1fr;}}
+.b-list-hdr { background:var(--navy); color:white; padding:11px 15px; border-radius:7px 7px 0 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.b-row { background:white; padding:13px 15px; border-bottom:1px solid var(--gray-border); cursor:pointer; transition:background .15s; display:flex; flex-direction:column; gap:4px; }
+.b-row:last-child { border-radius:0 0 7px 7px; border-bottom:none; }
+.b-row:hover { background:var(--gray-light); }
+.b-row.sel { background:var(--blue-pale); border-left:3px solid var(--blue); }
+.b-name { font-size:12px; font-weight:600; color:var(--text); }
+.b-row.sel .b-name { color:var(--blue); }
+.b-row-ft { display:flex; align-items:center; justify-content:space-between; }
+.sbadge { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.sb-ok { background:var(--green-pale); color:#065F46; border:1px solid #A7F3D0; }
+.sb-no { background:var(--red-pale); color:#991B1B; border:1px solid #FECACA; }
+.sb-rev { background:var(--amber-pale); color:#92400E; border:1px solid #FDE68A; }
+.sb-deb { background:#1F0505; color:#FCA5A5; border:1px solid #7F1D1D; }
+.cpct { font-size:10px; font-weight:600; color:var(--gray); font-family:var(--mono); }
+.b-detail { background:white; border-radius:8px; border:1px solid var(--gray-border); overflow:hidden; }
+.b-empty { display:flex; align-items:center; justify-content:center; height:280px; color:var(--gray); font-size:13px; font-style:italic; }
+.co-hdr { background:var(--navy); padding:18px 22px; color:white; }
+.co-name { font-size:20px; font-weight:700; margin-bottom:7px; }
+.co-ids { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:11px; }
+.co-id { font-family:var(--mono); font-size:11px; color:rgba(255,255,255,0.55); }
+.co-id strong { color:rgba(255,255,255,0.35); font-weight:500; margin-right:4px; }
+.deb-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.deb-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:5px; font-size:11px; font-weight:600; }
+.deb-ok { background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.28); color:#34D399; }
+.deb-fail { background:rgba(239,68,68,0.18); border:1px solid rgba(239,68,68,0.38); color:#FCA5A5; }
+.coi-lbl { font-size:11px; color:rgba(255,255,255,0.55); display:flex; align-items:center; gap:5px; }
+.jv-row { background:rgba(59,130,246,0.13); border:1px solid rgba(59,130,246,0.28); border-radius:5px; padding:6px 11px; font-size:11px; color:#93C5FD; margin-top:9px; }
+.jv-row strong { color:white; }
+.deb-banner { background:#7F1D1D; border-bottom:3px solid var(--red); padding:13px 22px; display:flex; align-items:center; gap:11px; }
+.deb-banner .dico { font-size:22px; }
+.deb-banner .dtxt { color:#FCA5A5; font-size:12px; line-height:1.55; }
+.deb-banner .dtxt strong { color:white; display:block; font-size:13px; margin-bottom:2px; }
+.eval-wrap { padding:18px 22px; }
+.eval-wrap h4 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gray); margin-bottom:12px; }
+.etable { width:100%; border-collapse:collapse; font-size:12px; }
+.etable th { text-align:left; padding:7px 10px; background:var(--navy); color:rgba(255,255,255,0.65); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+.etable th:first-child { border-radius:5px 0 0 5px; } .etable th:last-child { border-radius:0 5px 5px 0; }
+.etable td { padding:11px 10px; border-bottom:1px solid var(--gray-border); vertical-align:top; }
+.etable tr:last-child td { border-bottom:none; }
+.etable tr:hover td { background:var(--gray-light); }
+.dref { font-size:10px; color:var(--gray); line-height:1.4; }
+.xval { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text); }
+.nval { font-size:10px; color:var(--gray); }
+.thresh { font-size:11px; color:var(--text-2); }
+.vp { color:var(--green); font-weight:700; font-size:11px; background:var(--green-pale); padding:2px 7px; border-radius:3px; white-space:nowrap; }
+.vf { color:#991B1B; font-weight:700; font-size:11px; background:var(--red-pale); padding:2px 7px; border-radius:3px; white-space:nowrap; }
+.vr { color:#92400E; font-weight:700; font-size:11px; background:var(--amber-pale); padding:2px 7px; border-radius:3px; white-space:nowrap; }
+.cbar-wrap { display:flex; align-items:center; gap:7px; min-width:90px; }
+.cbar-bg { flex:1; height:5px; background:var(--gray-border); border-radius:3px; overflow:hidden; }
+.cbar-fill { height:100%; border-radius:3px; width:0%; transition:width .85s ease-out; }
+.cfill-hi { background:var(--green); } .cfill-md { background:var(--amber); } .cfill-lo { background:var(--red); }
+.cpct2 { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--gray); white-space:nowrap; }
+.vsrc-btn { background:var(--blue-pale); color:var(--blue); border:1px solid #BFDBFE; border-radius:3px; padding:3px 9px; font-size:10px; font-weight:600; cursor:pointer; font-family:var(--font); white-space:nowrap; transition:all .15s; }
+.vsrc-btn:hover { background:#DBEAFE; }
+
+/* Claude */
+.claude-card { margin:0 22px 18px; background:#0F172A; border-radius:7px; border:1px solid rgba(99,102,241,0.28); overflow:hidden; }
+.cl-hdr { background:rgba(99,102,241,0.1); padding:9px 14px; display:flex; align-items:center; gap:9px; border-bottom:1px solid rgba(99,102,241,0.18); }
+.cl-hdr h4 { font-size:12px; font-weight:600; color:#A5B4FC; }
+.cl-tag { font-family:var(--mono); font-size:9px; background:rgba(99,102,241,0.18); color:#818CF8; padding:2px 7px; border-radius:3px; margin-left:auto; }
+.cl-loading { padding:18px 14px; display:flex; align-items:center; gap:11px; color:rgba(255,255,255,0.45); font-size:12px; }
+.cl-dots span { display:inline-block; width:5px; height:5px; background:#818CF8; border-radius:50%; margin:0 2px; animation:bounce 1.2s ease-in-out infinite; }
+.cl-dots span:nth-child(2){animation-delay:.2s;} .cl-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-5px);}}
+.cl-resp { padding:14px; display:none; }
+.cl-resp.show { display:block; }
+.cl-txt { font-size:12px; line-height:1.7; color:rgba(255,255,255,0.78); margin-bottom:10px; }
+.cl-rec { display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:5px; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.rec-ok { background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.38); color:#34D399; }
+.rec-no { background:rgba(239,68,68,0.18); border:1px solid rgba(239,68,68,0.38); color:#F87171; }
+.rec-rev { background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.38); color:#FCD34D; }
+
+/* Human review */
+.hr-panel { margin:0 22px 22px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:7px; overflow:hidden; }
+.hr-hdr { background:var(--amber); padding:11px 15px; display:flex; align-items:center; gap:9px; }
+.hr-hdr h4 { font-size:13px; font-weight:700; color:white; }
+.hr-sub { font-size:11px; color:rgba(255,255,255,0.78); margin-left:auto; }
+.hr-body { padding:14px; }
+.hr-doc { background:white; border-radius:5px; border:1px solid var(--gray-border); padding:11px; margin-bottom:12px; filter:blur(1.5px) contrast(0.8) brightness(1.05); pointer-events:none; user-select:none; font-size:10px; color:var(--text-2); line-height:1.6; }
+.hr-partial { background:var(--navy); border-radius:5px; padding:11px 13px; font-family:var(--mono); font-size:11px; color:rgba(255,255,255,0.68); margin-bottom:12px; line-height:1.65; }
+.hr-partial .illeg { color:rgba(255,255,255,0.22); font-style:italic; }
+.hr-acts { display:flex; gap:9px; margin-bottom:10px; }
+.hr-notes { width:100%; border:1.5px solid var(--gray-border); border-radius:5px; padding:9px 11px; font-family:var(--font); font-size:12px; resize:vertical; min-height:56px; margin-bottom:10px; }
+.hr-notes:focus { outline:none; border-color:var(--amber); }
+.hr-done { display:none; background:var(--green-pale); border:1px solid rgba(16,185,129,0.28); border-radius:5px; padding:11px 13px; font-size:11px; color:#065F46; font-family:var(--mono); line-height:1.6; }
+.hr-done.show { display:block; }
+
+/* Doc source modal */
+.doc-modal-box { background:white; border-radius:8px; max-width:860px; width:95%; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 24px 56px rgba(0,0,0,0.42); }
+.dm-hdr { padding:14px 18px; border-bottom:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; }
+.dm-hdr h3 { font-size:14px; font-weight:700; color:var(--navy); }
+.dm-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--gray); line-height:1; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:4px; transition:background .15s; }
+.dm-close:hover { background:var(--gray-light); }
+.dm-body { display:grid; grid-template-columns:1fr 1fr; flex:1; overflow:auto; }
+.doc-pg { border-right:1px solid var(--gray-border); padding:18px; overflow-y:auto; background:#F8F8F6; }
+.doc-xi { padding:18px; overflow-y:auto; }
+.gov-pdf { background:white; padding:22px 18px; font-family:'Times New Roman',serif; font-size:10.5px; color:#111; border:1px solid #DDD; border-radius:2px; position:relative; min-height:380px; }
+.pdf-lh { text-align:center; border-bottom:2px solid #333; padding-bottom:9px; margin-bottom:11px; }
+.pdf-dept { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.pdf-ttl { font-size:11px; font-weight:600; margin-top:3px; }
+.pdf-ref { font-size:9px; color:#555; margin-top:2px; }
+.gov-pdf table { width:100%; border-collapse:collapse; margin:9px 0; font-size:9.5px; }
+.gov-pdf table td,.gov-pdf table th { border:1px solid #999; padding:3px 5px; text-align:left; }
+.gov-pdf table th { background:#EEE; font-weight:700; }
+.hi-val { background:#FEFCE8; border:1.5px solid #F59E0B; border-radius:2px; padding:1px 3px; font-weight:700; color:#92400E; }
+.stamp { position:absolute; bottom:28px; right:18px; border:3px solid rgba(0,100,0,0.45); border-radius:4px; padding:7px 9px; text-align:center; transform:rotate(-8deg); color:rgba(0,100,0,0.55); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; line-height:1.4; width:82px; }
+.sig-area { margin-top:28px; display:flex; justify-content:space-between; font-size:9px; color:#555; }
+.poor-scan { filter:blur(1.5px) contrast(0.8) brightness(1.05) saturate(0.5); }
+.xi-row { display:flex; gap:9px; padding:9px 0; border-bottom:1px solid var(--gray-border); align-items:flex-start; }
+.xi-row:last-child { border-bottom:none; }
+.xi-lbl { font-size:10px; font-weight:600; color:var(--gray); text-transform:uppercase; letter-spacing:.05em; min-width:100px; padding-top:1px; }
+.xi-val { font-size:11px; color:var(--text); font-family:var(--mono); line-height:1.5; }
+
+/* Stage 4 */
+.rpt-card { background:white; border-radius:8px; border:1px solid var(--gray-border); overflow:hidden; }
+.rpt-hdr { background:var(--navy); padding:22px 26px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; }
+.rpt-ttl { color:white; font-size:19px; font-weight:700; margin-bottom:5px; }
+.rpt-meta { display:flex; flex-direction:column; gap:3px; }
+.rpt-mr { font-size:11px; color:rgba(255,255,255,0.55); }
+.rpt-mr .mono { font-family:var(--mono); color:rgba(255,255,255,0.82); }
+.dig-sig { background:rgba(16,185,129,0.13); border:1px solid rgba(16,185,129,0.35); border-radius:7px; padding:11px 15px; text-align:right; }
+.ds-lbl { font-size:9px; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:.06em; }
+.ds-val { font-family:var(--mono); font-size:12px; color:#34D399; font-weight:600; }
+.ds-hash { font-family:var(--mono); font-size:9px; color:rgba(255,255,255,0.28); margin-top:2px; }
+.rpt-sec { padding:22px 26px; border-bottom:1px solid var(--gray-border); }
+.rpt-sec h3 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--navy); margin-bottom:14px; padding-bottom:7px; border-bottom:2px solid var(--navy); display:inline-block; }
+.sum-table { width:100%; border-collapse:collapse; font-size:12px; }
+.sum-table th { text-align:left; padding:9px 13px; background:var(--navy); color:rgba(255,255,255,0.65); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+.sum-table th:first-child{border-radius:5px 0 0 0;} .sum-table th:last-child{border-radius:0 5px 0 0;}
+.sum-table td { padding:11px 13px; border-bottom:1px solid var(--gray-border); }
+.sum-table tr:hover td { background:var(--gray-light); }
+.aud-entry { display:flex; align-items:flex-start; gap:13px; padding:9px 0; border-bottom:1px solid var(--gray-border); }
+.aud-entry:last-child { border-bottom:none; }
+.aud-t { font-family:var(--mono); font-size:11px; color:var(--blue-light); font-weight:600; white-space:nowrap; min-width:64px; }
+.aud-dot { width:7px; height:7px; background:var(--blue); border-radius:50%; flex-shrink:0; margin-top:3px; }
+.aud-d { font-size:12px; color:var(--text-2); line-height:1.4; }
+.stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--navy); }
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat-box { background:var(--navy-3); padding:14px 18px; text-align:center; }
+.stat-v { font-size:21px; font-weight:700; color:white; }
+.stat-l { font-size:10px; color:rgba(255,255,255,0.45); margin-top:2px; }
+.stat-s { font-size:10px; color:var(--amber); font-weight:600; margin-top:2px; }
+
+/* Audit FAB */
+#fab { position:fixed; bottom:22px; right:22px; z-index:200; }
+.fab-btn { background:var(--navy-2); border:1px solid rgba(255,255,255,0.13); color:white; border-radius:22px; padding:9px 15px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-shadow:0 4px 14px rgba(0,0,0,0.42); transition:all .2s; font-family:var(--font); }
+.fab-btn:hover { background:var(--navy-3); }
+.fab-cnt { background:var(--blue); border-radius:9px; padding:1px 6px; font-size:10px; font-weight:700; min-width:18px; text-align:center; }
+.aud-drawer { display:none; position:fixed; bottom:64px; right:22px; width:340px; max-height:400px; background:var(--navy-2); border:1px solid rgba(255,255,255,0.09); border-radius:7px; overflow:hidden; z-index:200; flex-direction:column; box-shadow:0 12px 32px rgba(0,0,0,0.52); }
+.aud-drawer.open { display:flex; }
+.ad-hdr { padding:11px 14px; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:space-between; }
+.ad-hdr h4 { font-size:12px; font-weight:700; color:white; }
+.ad-hdr button { background:none; border:none; color:rgba(255,255,255,0.45); font-size:17px; cursor:pointer; line-height:1; }
+.ad-body { overflow-y:auto; flex:1; padding:6px 0; }
+.al-entry { display:flex; gap:9px; align-items:flex-start; padding:6px 14px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.al-entry:last-child { border-bottom:none; }
+.al-t { font-family:var(--mono); font-size:10px; color:#60A5FA; white-space:nowrap; min-width:55px; }
+.al-m { font-size:11px; color:rgba(255,255,255,0.65); line-height:1.4; }
+
+/* Toast */
+#toasts { position:fixed; top:66px; right:22px; z-index:500; display:flex; flex-direction:column; gap:7px; pointer-events:none; }
+@keyframes slideIn{from{transform:translateX(18px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+</style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay active" id="modal-apikey">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:14px;">
+      <div style="width:42px;height:42px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:21px;">🛡</div>
+      <div><h2 style="margin-bottom:1px;">TenderMind AI</h2><p style="margin:0;font-size:11px;color:var(--gray);">Intelligent Procurement Evaluation Platform</p></div>
+    </div>
+    <p>Enter your Anthropic API key to enable AI-powered qualitative reasoning. The app works fully without it — Claude only enhances Criterion 2 evaluation.</p>
+    <input type="password" class="modal-input" id="api-key-in" placeholder="sk-ant-api03-..." autocomplete="off" />
+    <div style="display:flex;gap:9px;">
+      <button class="btn btn-p" style="flex:1;" onclick="saveKey()">🔒 Enable AI Reasoning</button>
+      <button class="btn btn-s" onclick="skipKey()">Skip for now</button>
+    </div>
+    <p style="font-size:10px;color:var(--gray);margin-top:11px;margin-bottom:0;">Key stored in session memory only — never persisted.</p>
+  </div>
+</div>
+
+<!-- APPROVAL MODAL -->
+<div class="modal-overlay" id="modal-approve">
+  <div class="modal-box">
+    <div style="font-size:38px;text-align:center;margin-bottom:11px;">⚠️</div>
+    <h2 style="text-align:center;">Confirm Criteria Approval</h2>
+    <p style="text-align:center;">You are approving <strong>4 evaluation criteria</strong>. Once approved, these will be <strong>locked</strong> and applied consistently to all bidders. This action is recorded in the audit trail.</p>
+    <div style="background:var(--gray-light);border:1px solid var(--gray-border);border-radius:5px;padding:12px;margin-bottom:18px;font-size:12px;color:var(--text-2);line-height:1.8;">
+      ✓ Financial — Annual turnover ≥ ₹5 Crore (2 of 3 years)<br>
+      ✓ Experience — ≥3 similar construction projects each ≥ ₹1 Crore<br>
+      ✓ Compliance — Valid GST registration<br>
+      ✓ Certification — ISO 9001:2015 (valid)
+    </div>
+    <div style="display:flex;gap:9px;">
+      <button class="btn btn-ok" style="flex:1;" onclick="doApprove()">✓ Approve &amp; Lock Criteria</button>
+      <button class="btn btn-s" onclick="closeModal('modal-approve')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOC SOURCE MODAL -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="doc-modal-box">
+    <div class="dm-hdr">
+      <h3 id="dm-ttl">Document Source</h3>
+      <button class="dm-close" onclick="closeModal('modal-doc')">×</button>
+    </div>
+    <div class="dm-body">
+      <div class="doc-pg" id="dm-pdf"></div>
+      <div class="doc-xi" id="dm-xi"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="top-nav">
+  <div class="nav-logo"><div class="nav-shield">🛡</div>TenderMind <span>AI</span></div>
+  <div class="tender-pill" id="nav-tid">No Tender Loaded</div>
+  <div class="nav-right">
+    <div class="officer-badge"><div class="officer-dot"></div>Officer #OFC-2847 | Logged in</div>
+    <div class="ai-btn off" id="ai-btn" onclick="openKeyModal()"><span>🔐</span><span id="ai-txt">AI: Not Connected</span></div>
+  </div>
+</nav>
+
+<!-- STEPPER -->
+<div id="stepper">
+  <div class="step active" id="stp1" onclick="goStage(1)"><div class="step-n" id="sn1">1</div><div class="step-lbl">Tender Upload</div></div>
+  <div class="step-line"></div>
+  <div class="step" id="stp2" onclick="goStage(2)"><div class="step-n" id="sn2">2</div><div class="step-lbl">Criteria Review</div></div>
+  <div class="step-line"></div>
+  <div class="step" id="stp3" onclick="goStage(3)"><div class="step-n" id="sn3">3</div><div class="step-lbl">Bidder Evaluation</div></div>
+  <div class="step-line"></div>
+  <div class="step" id="stp4" onclick="goStage(4)"><div class="step-n" id="sn4">4</div><div class="step-lbl">Final Report</div></div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- STAGE 1 -->
+  <div class="stage active" id="stage-1">
+    <p class="page-ttl">Tender Upload</p>
+    <p class="page-sub">Upload a tender document or load the demo to begin AI-assisted criteria extraction.</p>
+    <div class="s1-grid">
+      <div class="card">
+        <div class="ch"><h3>📄 Document Upload</h3></div>
+        <div class="cb">
+          <div class="file-pill" id="file-pill">
+            <span style="font-size:26px;">📋</span>
+            <div><div class="fn" id="pill-fn">CRPF_Construction_Tender_2024.pdf</div><div class="fs" id="pill-fs">4.7 MB · PDF Document</div></div>
+            <span style="margin-left:auto;color:var(--green);font-size:18px;">✅</span>
+          </div>
+          <div class="upload-zone" id="uzone" onclick="document.getElementById('finput').click()">
+            <div class="uico">📤</div>
+            <h4>Upload Tender Document (PDF)</h4>
+            <p>Drag &amp; drop or click to browse</p>
+            <p style="font-size:10px;margin-top:5px;">Supports PDF up to 50MB</p>
+          </div>
+          <input type="file" id="finput" accept=".pdf" style="display:none;" onchange="handleFile(event)" />
+          <div class="divider"><span>OR</span></div>
+          <button class="btn btn-outline btn-lg" onclick="loadDemo()">📁 Load Demo Tender — CRPF Construction 2024</button>
+          <div id="s1-proceed" style="margin-top:18px;display:none;">
+            <button class="btn btn-p btn-lg" onclick="proceedS2()">Proceed to Criteria Review →</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>🔍 Extracted Metadata</h3><span id="ext-badge" style="display:none;" class="sbadge sb-ok">EXTRACTED</span></div>
+        <div class="cb" id="ext-panel">
+          <div style="text-align:center;padding:36px 18px;color:var(--gray);">
+            <div style="font-size:38px;margin-bottom:11px;">📂</div>
+            <p style="font-size:13px;">Upload a document or load the demo to see extracted metadata.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <div class="stage" id="stage-2">
+    <div class="s2-hdr">
+      <h2>Review Extracted Criteria Before Evaluation Begins</h2>
+      <p>Correct any errors in the extracted text. Once approved, these criteria will be locked and applied consistently to all bidders.</p>
+    </div>
+    <div class="crit-grid" id="crit-grid"></div>
+    <button class="btn btn-ok btn-lg" onclick="openApprove()">✓ Approve Criteria &amp; Begin Evaluation</button>
+  </div>
+
+  <!-- STAGE 3 -->
+  <div class="stage" id="stage-3">
+    <div class="anomaly" id="anomaly-banner">
+      <div class="aico">⚠️</div>
+      <div class="atxt"><strong>Anomaly Detected:</strong> The turnover threshold of ₹5 Crore is in the <strong>94th percentile</strong> for similar construction tenders in the last 12 months (median: ₹2.1 Crore). Flagged for senior officer review. <em>This is not an accusation — it is a transparency signal.</em></div>
+      <button class="aclose" onclick="this.parentElement.style.display='none';alog('Anomaly banner dismissed by Officer #OFC-2847');">×</button>
+    </div>
+    <div class="s3-layout">
+      <div>
+        <div class="b-list-hdr">Bidders (5)</div>
+        <div id="b-list"></div>
+      </div>
+      <div class="b-detail" id="b-detail">
+        <div class="b-empty">← Select a bidder to view evaluation details</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE 4 -->
+  <div class="stage" id="stage-4">
+    <p class="page-ttl">Final Evaluation Report</p>
+    <p class="page-sub">Digitally signed, cryptographically hashed, and ready for submission.</p>
+    <div class="rpt-card">
+      <div class="rpt-hdr">
+        <div>
+          <div class="rpt-ttl">CRPF Tender Evaluation Report</div>
+          <div class="rpt-meta">
+            <div class="rpt-mr">Tender ID: <span class="mono">CRPF/2024/CONST/0847</span></div>
+            <div class="rpt-mr">Department: <span class="mono">Central Reserve Police Force</span></div>
+            <div class="rpt-mr">Generated: <span class="mono" id="rpt-gen">—</span></div>
+          </div>
+        </div>
+        <div class="dig-sig">
+          <div class="ds-lbl">Document Status</div>
+          <div class="ds-val">✅ DIGITALLY SIGNED</div>
+          <div class="ds-hash">SHA-256: a3f8c2e1d4b769...</div>
+        </div>
+      </div>
+      <div class="rpt-sec">
+        <h3>Evaluation Summary</h3>
+        <table class="sum-table">
+          <thead><tr><th>Bidder</th><th>Overall Verdict</th><th>Criteria Passed</th><th>Criteria Failed</th><th>Under Review</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Rajesh Constructions Pvt. Ltd.</strong></td><td><span class="sbadge sb-ok">✓ ELIGIBLE</span></td><td style="color:var(--green);font-weight:700;">4/4</td><td>0</td><td>0</td></tr>
+            <tr><td><strong>Sharma Infrastructure Ltd.</strong></td><td><span class="sbadge sb-no">✗ NOT ELIGIBLE</span></td><td>3/4</td><td style="color:var(--red);font-weight:700;">1 (Turnover)</td><td>0</td></tr>
+            <tr><td><strong>BuildRight JV (Consortium)</strong></td><td><span class="sbadge sb-ok">✓ ELIGIBLE</span></td><td style="color:var(--green);font-weight:700;">4/4</td><td>0</td><td>0</td></tr>
+            <tr><td><strong>Mehta &amp; Sons Construction</strong></td><td><span class="sbadge sb-rev">⚠ MANUAL REVIEW</span></td><td>3/4</td><td>0</td><td style="color:var(--amber);font-weight:700;">1 (Experience)</td></tr>
+            <tr><td><strong>Pioneer Civil Works</strong></td><td><span class="sbadge sb-deb">🚫 DEBARRED</span></td><td colspan="3" style="color:var(--red);font-size:11px;font-weight:600;">Evaluation halted — debarment registry match</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rpt-sec">
+        <h3>Audit Trail</h3>
+        <div>
+          <div class="aud-entry"><div class="aud-t">10:42:03</div><div class="aud-dot"></div><div class="aud-d">Tender document uploaded — CRPF_Construction_Tender_2024.pdf (4.7 MB)</div></div>
+          <div class="aud-entry"><div class="aud-t">10:43:31</div><div class="aud-dot"></div><div class="aud-d">Criteria extracted — 4 criteria identified (3 rule-based, 1 qualitative). Source: Clause 4.2, Page 8.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:44:15</div><div class="aud-dot"></div><div class="aud-d">Criteria approved and locked by Officer ID #OFC-2847.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:44:16</div><div class="aud-dot"></div><div class="aud-d">Debarment checks initiated — 5 bidders queried against CPPP Debarred Registry.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:44:18</div><div class="aud-dot" style="background:var(--red);"></div><div class="aud-d">⛔ Debarment match: Pioneer Civil Works — GSTIN 29AACP1234F. Referred to senior officer.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:45:02</div><div class="aud-dot" style="background:var(--green);"></div><div class="aud-d">Bidder 1 (Rajesh Constructions) — ELIGIBLE. All 4 criteria PASS. Auto-committed. Confidence: 92%.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:45:18</div><div class="aud-dot" style="background:var(--red);"></div><div class="aud-d">Bidder 2 (Sharma Infrastructure) — NOT ELIGIBLE. Criterion 1 FAIL (₹3.1Cr &lt; ₹5Cr). Auto-committed.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:45:31</div><div class="aud-dot" style="background:var(--green);"></div><div class="aud-d">Bidder 3 (BuildRight JV) — ELIGIBLE. JV aggregation per Clause 7.4 applied. Combined ₹7.3Cr.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:45:44</div><div class="aud-dot" style="background:var(--amber);"></div><div class="aud-d">Bidder 4 (Mehta &amp; Sons) — flagged for human review. Criterion 2 confidence 58% (poor scan).</div></div>
+          <div class="aud-entry"><div class="aud-t">10:47:22</div><div class="aud-dot" style="background:var(--green);"></div><div class="aud-d">Human review submitted for Bidder 4 by Officer #OFC-2847. Logged to audit trail.</div></div>
+          <div class="aud-entry"><div class="aud-t">10:47:23</div><div class="aud-dot"></div><div class="aud-d">Final report generated and digitally signed. SHA-256: a3f8c2e1d4b769...</div></div>
+        </div>
+      </div>
+      <div class="rpt-sec" style="border-bottom:none;padding-bottom:0;">
+        <button class="btn btn-p" onclick="dlReport()" style="margin-bottom:22px;">⬇ Download Evaluation Report (PDF)</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-v">38m</div><div class="stat-l">Processing Time</div><div class="stat-s">vs 3 days manual</div></div>
+        <div class="stat-box"><div class="stat-v">47</div><div class="stat-l">Documents Processed</div><div class="stat-s">All pages analysed</div></div>
+        <div class="stat-box"><div class="stat-v">18/20</div><div class="stat-l">Auto-Committed</div><div class="stat-s">90% automation rate</div></div>
+        <div class="stat-box"><div class="stat-v">2/20</div><div class="stat-l">Human Reviews</div><div class="stat-s">All resolved</div></div>
+        <div class="stat-box"><div class="stat-v">84.2%</div><div class="stat-l">Avg Confidence</div><div class="stat-s">High reliability</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- AUDIT FAB -->
+<div id="fab">
+  <div class="aud-drawer" id="aud-drawer">
+    <div class="ad-hdr"><h4>📋 Session Audit Log</h4><button onclick="toggleAud()">×</button></div>
+    <div class="ad-body" id="al-body"></div>
+  </div>
+  <button class="fab-btn" onclick="toggleAud()">📋 Audit Log <span class="fab-cnt" id="fab-cnt">0</span></button>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+const S = { apiKey:null, stage:1, loaded:false, approved:false, bidder:null, claudeCache:{}, hrSubs:{}, logCnt:0 };
+
+// ── DATA ───────────────────────────────────────────────
+const CRITERIA = [
+  { n:1, type:'FINANCIAL', tc:'typ-fin', text:'Minimum annual turnover of ₹5 Crore in any 2 of the last 3 financial years (FY 2021-22, FY 2022-23, FY 2023-24), as certified by a Chartered Accountant.', thresh:'₹5 Crore (2 of 3 years)', src:'Extracted from: Clause 4.2(a), Page 8', meth:'RULE ENGINE', mc:'meth-rule' },
+  { n:2, type:'EXPERIENCE', tc:'typ-exp', text:'Minimum 3 similar construction projects completed in the last 5 years, each individually valued at ₹1 Crore or more. "Similar" means civil/structural construction for government or defence establishments.', thresh:'3 projects ≥ ₹1 Crore each', src:'Extracted from: Clause 4.2(b), Page 9', meth:'AI + HUMAN REVIEW', mc:'meth-ai', tip:'Qualitative criterion — AI will reason about project similarity but a human must confirm every verdict' },
+  { n:3, type:'COMPLIANCE', tc:'typ-com', text:'Valid GST registration certificate (GSTIN) currently active and in good standing. Certificate must be provided as part of the bid submission.', thresh:'Valid GST', src:'Extracted from: Clause 4.3(c), Page 10', meth:'RULE ENGINE', mc:'meth-rule' },
+  { n:4, type:'CERTIFICATION', tc:'typ-cert', text:'ISO 9001:2015 Quality Management System certification, currently valid (not expired). Certificate must be issued by an accredited certification body.', thresh:'ISO 9001:2015 (valid)', src:'Extracted from: Clause 4.4(a), Page 11', meth:'RULE ENGINE', mc:'meth-rule' }
+];
+
+const BIDDERS = [
+  { id:0, name:'Rajesh Constructions Pvt. Ltd.', status:'ELIGIBLE', sc:'sb-ok', icon:'✓', conf:92, gstin:'07AAACR5055K1ZS', pan:'AAACR5055K', deb:false, jv:null,
+    crit:[
+      { v:'PASS', vc:'vp', conf:95, doc:'Audited Balance Sheet FY2023-24.pdf, Page 3', xval:'₹ 7,20,00,000', nval:'= ₹7.2 Crore', thresh:'Required: ₹5 Crore', note:'Meets threshold in FY23-24 & FY22-23' },
+      { v:'PASS', vc:'vp', conf:88, doc:'Project Experience Certificate.pdf, Page 1-3', xval:'4 projects listed', nval:'Avg ₹1.8 Crore', thresh:'Required: ≥3 projects', note:'All 4 qualify by value and similarity' },
+      { v:'PASS', vc:'vp', conf:99, doc:'GST_Registration_RAJESH.pdf, Page 1', xval:'07AAACR5055K1ZS', nval:'GSTIN — Active', thresh:'Required: Valid GST', note:'Verified active in GSTN database' },
+      { v:'PASS', vc:'vp', conf:97, doc:'ISO_9001_Certificate.pdf, Page 1', xval:'ISO 9001:2015 | Exp: March 2026', nval:'Valid — 10 months', thresh:'Required: ISO 9001:2015', note:'Issued by Bureau Veritas, accredited' }
+    ]},
+  { id:1, name:'Sharma Infrastructure Ltd.', status:'NOT ELIGIBLE', sc:'sb-no', icon:'✗', conf:91, gstin:'06AAACS7142G1ZM', pan:'AAACS7142G', deb:false, jv:null,
+    crit:[
+      { v:'FAIL', vc:'vf', conf:91, doc:'CA_Certified_Turnover_FY2024.pdf, Page 2', xval:'₹ 3,10,00,000', nval:'= ₹3.1 Crore', thresh:'Required: ₹5 Crore', note:'Below threshold in all 3 years reviewed' },
+      { v:'PASS', vc:'vp', conf:86, doc:'Work_Experience_Certificate.pdf, Page 2-4', xval:'3 projects listed', nval:'Avg ₹1.4 Crore', thresh:'Required: ≥3 projects', note:'Experience criterion met' },
+      { v:'PASS', vc:'vp', conf:99, doc:'GST_Certificate_SHARMA.pdf, Page 1', xval:'06AAACS7142G1ZM', nval:'GSTIN — Active', thresh:'Required: Valid GST', note:'Verified active' },
+      { v:'PASS', vc:'vp', conf:94, doc:'ISO_Certificate_SHARMA.pdf, Page 1', xval:'ISO 9001:2015 | Exp: Jan 2026', nval:'Valid — 8 months', thresh:'Required: ISO 9001:2015', note:'Valid certification' }
+    ]},
+  { id:2, name:'BuildRight JV (Consortium)', status:'ELIGIBLE', sc:'sb-ok', icon:'✓', conf:94, gstin:'29AAACB8847Q1ZR', pan:'AAACB8847Q', deb:false, jv:{lead:'BuildRight Ltd (Lead, 60%)',part:'Apex Structures (Partner, 40%)'},
+    crit:[
+      { v:'PASS', vc:'vp', conf:93, doc:'JV_Combined_Financials.pdf, Page 4-5', xval:'₹4.2Cr + ₹3.1Cr = ₹7.3Cr', nval:'Combined = ₹7.3 Crore', thresh:'Required: ₹5 Crore (JV)', note:'JV aggregation per Clause 7.4 JV Rules. Lead ₹4.2Cr + Partner ₹3.1Cr = ₹7.3Cr combined, meets threshold' },
+      { v:'PASS', vc:'vp', conf:89, doc:'JV_Project_Experience.pdf, Page 1-5', xval:'5 projects (combined)', nval:'Avg ₹1.6 Crore', thresh:'Required: ≥3 projects', note:'JV combined experience exceeds requirement' },
+      { v:'PASS', vc:'vp', conf:99, doc:'GST_JV_Certificates.pdf, Page 1-2', xval:'Both active GSTINs', nval:'Both Active', thresh:'Required: Valid GST', note:'Both JV partners verified active' },
+      { v:'PASS', vc:'vp', conf:96, doc:'ISO_JV_Certificates.pdf, Page 1-2', xval:'Both ISO 9001:2015 certified', nval:'Both valid — 2026', thresh:'Required: ISO 9001:2015', note:'Both partners certified' }
+    ]},
+  { id:3, name:'Mehta & Sons Construction', status:'REVIEW NEEDED', sc:'sb-rev', icon:'⚠', conf:72, gstin:'24AAACM3318F1ZP', pan:'AAACM3318F', deb:false, poorScan:true, jv:null,
+    crit:[
+      { v:'PASS', vc:'vp', conf:88, doc:'Balance_Sheet_MEHTA_FY24.pdf, Page 3', xval:'₹ 6,80,00,000', nval:'= ₹6.8 Crore', thresh:'Required: ₹5 Crore', note:'Meets threshold' },
+      { v:'REVIEW', vc:'vr', conf:58, doc:'Experience_Certificate_MEHTA.pdf, Page 1 (Poor Scan)', xval:'...3 project[s]...', nval:'Values illegible', thresh:'Required: ≥3 projects', note:'Poor scan quality — values not clearly legible. Human review required.' },
+      { v:'PASS', vc:'vp', conf:99, doc:'GST_Certificate_MEHTA.pdf, Page 1', xval:'24AAACM3318F1ZP', nval:'GSTIN — Active', thresh:'Required: Valid GST', note:'Verified active' },
+      { v:'PASS', vc:'vp', conf:91, doc:'ISO_Certificate_MEHTA.pdf, Page 1', xval:'ISO 9001:2015 | Exp: Sep 2025', nval:'Valid — 5 months', thresh:'Required: ISO 9001:2015', note:'Valid but approaching expiry' }
+    ]},
+  { id:4, name:'Pioneer Civil Works', status:'DEBARRED', sc:'sb-deb', icon:'🚫', conf:0, gstin:'29AACP1234F1ZX', pan:'AACP1234F', deb:true, jv:null, crit:[] }
+];
+
+const PROJECTS = {
+  0:`1. Construction of 24 staff quarters, CISF Camp Ghaziabad — Completed March 2023 — Value: ₹2.3 Crore\n2. Renovation of 3 government office buildings, PWD Delhi — Completed August 2022 — Value: ₹1.8 Crore\n3. Construction of boundary wall and guardpost, BSF Camp — Completed January 2021 — Value: ₹1.2 Crore\n4. Construction of transit barracks, CRPF Camp — Completed July 2022 — Value: ₹2.1 Crore`,
+  1:`1. Construction of commercial warehouse, Gurgaon — Completed January 2023 — Value: ₹2.0 Crore\n2. Interior fit-out of private office complex — Completed April 2022 — Value: ₹1.4 Crore\n3. Renovation of school building, MCD Delhi — Completed August 2021 — Value: ₹0.8 Crore`,
+  2:`(Combined JV experience)\n1. Construction of 48 staff quarters, BSF Camp Amritsar — Completed Feb 2024 — Value: ₹4.1 Crore\n2. Construction of training facility, ITBP Academy — Completed Nov 2022 — Value: ₹3.2 Crore\n3. Renovation and extension of CRPF barracks, Delhi — Completed June 2021 — Value: ₹1.8 Crore`,
+  3:`(Partially legible document)\n1. Construction of [project type illegible]... government... — Completed [year illegible] — Value: [illegible]\n2. Renovation of [illegible]... approximately ₹1.2 Crore...\n3. Construction project... [rest of document poorly scanned]`
+};
+
+const DEMO_CLAUDE = {
+  0:"The bidder has demonstrated 4 qualifying projects, all completed for government and defence establishments including CISF, PWD Delhi, BSF, and CRPF. Projects 1, 2, and 4 individually meet the ₹1 Crore value threshold and involve civil/structural construction directly relevant to the tender scope. Project 3 (boundary wall, BSF, ₹1.2 Crore) qualifies under construction for defence establishments. The 5-year recency requirement is satisfied for all four projects. RECOMMENDATION: COMPLIANT",
+  1:"The bidder presents 3 projects, however only 2 meet the minimum individual value threshold of ₹1 Crore. Project 3 (MCD school renovation, ₹0.8 Crore) falls below the ₹1 Crore per-project requirement. Additionally, Project 1 (commercial warehouse) is not government or defence-related construction, raising a similarity concern. Only Project 2 (PWD office buildings) clearly meets both value and similarity criteria. With insufficient qualifying projects, the criterion is not met. RECOMMENDATION: NON-COMPLIANT",
+  2:"The JV presents 3 combined projects, all completed for government and defence establishments (BSF, ITBP, CRPF), all within 5 years, and all valued well above ₹1 Crore individually. The combined JV experience significantly exceeds the minimum requirement. All three projects are directly similar to the tender scope of civil construction for security force establishments. RECOMMENDATION: COMPLIANT",
+  3:"The submitted experience certificate is of very poor scan quality and critical information — including project values and descriptions — is not clearly legible. While the document partially indicates the presence of 3 projects, the AI cannot verify with sufficient confidence that each individually meets the ₹1 Crore threshold. Human review of the original document or a clear re-submission is required before a determination can be made. RECOMMENDATION: REQUIRES HUMAN REVIEW"
+};
+
+// Document data for source modal
+const DOC_DATA = {
+  fin_ok: {
+    title:'Audited Balance Sheet FY 2023-24',
+    pdf:`<div class="gov-pdf"><div class="pdf-lh"><div class="pdf-dept">Rajesh Constructions Pvt. Ltd.</div><div class="pdf-ttl">Audited Annual Financial Statement — FY 2023-24</div><div class="pdf-ref">ICAI Reg. No.: 014583N | CA: Suresh Kumar & Associates</div></div><p style="font-size:9px;margin-bottom:7px;">We have audited the financial statements of Rajesh Constructions Pvt. Ltd. for the year ended March 31, 2024...</p><table><tr><th colspan="3">Profit & Loss Statement (Extracts)</th></tr><tr><th>Particulars</th><th>FY 2023-24</th><th>FY 2022-23</th></tr><tr><td>Revenue from Operations</td><td><span class="hi-val">₹7,20,00,000</span></td><td>₹6,45,00,000</td></tr><tr><td>Other Income</td><td>₹12,50,000</td><td>₹8,20,000</td></tr><tr><td><strong>Total Revenue</strong></td><td><strong>₹7,32,50,000</strong></td><td><strong>₹6,53,20,000</strong></td></tr><tr><td>Net Profit</td><td>₹98,50,000</td><td>₹82,10,000</td></tr></table><div class="stamp">AUDITED &<br>CERTIFIED<br>FY 2023-24</div><div class="sig-area"><div>For Rajesh Constructions<br><br>___________<br>Director</div><div>For Suresh Kumar & Associates<br>Chartered Accountants<br>___________<br>CA M.No.089241</div></div></div>`,
+    conf:95, ext:'₹7,20,00,000 (Revenue from Operations)', pg:'Page 3', clause:'Revenue from Operations row', meth:'OCR + Table Extraction'
+  },
+  fin_fail: {
+    title:'CA Certified Turnover — Sharma Infrastructure Ltd.',
+    pdf:`<div class="gov-pdf"><div class="pdf-lh"><div class="pdf-dept">Sharma Infrastructure Ltd.</div><div class="pdf-ttl">CA Certified Turnover Statement — FY 2023-24</div><div class="pdf-ref">ICAI Reg. No.: 022441N | CA: Ramesh Gupta & Co.</div></div><table><tr><th>Year</th><th>Turnover</th><th>Status</th></tr><tr><td>FY 2023-24</td><td><span class="hi-val">₹3,10,00,000</span></td><td>Certified</td></tr><tr><td>FY 2022-23</td><td>₹2,85,00,000</td><td>Certified</td></tr><tr><td>FY 2021-22</td><td>₹2,60,00,000</td><td>Certified</td></tr></table><p style="font-size:9px;margin-top:8px;color:#c00;">Note: Threshold required ₹5,00,00,000 — criterion NOT met in any year.</p><div class="stamp">CA<br>CERTIFIED<br>2024</div><div class="sig-area"><div>For Sharma Infrastructure<br>___________<br>Director</div><div>For Ramesh Gupta & Co.<br>CA M.No.074112</div></div></div>`,
+    conf:91, ext:'₹3,10,00,000 (below ₹5 Crore threshold)', pg:'Page 2', clause:'Turnover table, FY 2023-24 row', meth:'OCR + Table Extraction'
+  },
+  exp_ok: {
+    title:'Project Experience Certificate — CISF',
+    pdf:`<div class="gov-pdf"><div class="pdf-lh"><div class="pdf-dept">Central Industrial Security Force</div><div class="pdf-ttl">Certificate of Satisfactory Completion of Work</div><div class="pdf-ref">Ref: CISF/GZB/CONST/2023/441 | Date: 15 April 2023</div></div><p style="font-size:9px;margin-bottom:7px;">This is to certify that <strong>Rajesh Constructions Pvt. Ltd.</strong> has satisfactorily completed the following construction works:</p><table><tr><th>Description of Work</th><th>Contract Value</th><th>Completion</th><th>Grade</th></tr><tr><td>Construction of 24 Staff Quarters, CISF Camp Ghaziabad</td><td><span class="hi-val">₹2,30,00,000</span></td><td>March 2023</td><td>A</td></tr><tr><td>Guard Post & Security Infrastructure</td><td>₹48,00,000</td><td>Jan 2023</td><td>A</td></tr></table><div class="stamp">VERIFIED<br>CISF HQ<br>2023</div><div class="sig-area"><div>Commandant<br>CISF Camp Ghaziabad<br>___________</div><div>DIG (Admin)<br>CISF HQ New Delhi<br>___________</div></div></div>`,
+    conf:88, ext:'4 qualifying projects identified, avg ₹1.8 Crore', pg:'Page 1', clause:'Contract Value column', meth:'OCR + Structured Extraction'
+  },
+  exp_poor: {
+    title:'Experience Certificate — POOR QUALITY SCAN (Mehta & Sons)',
+    pdf:`<div class="gov-pdf poor-scan"><div class="pdf-lh"><div class="pdf-dept">Mehta & Sons Construction Works</div><div class="pdf-ttl">Project Experience Certificate & Portfolio</div><div class="pdf-ref">Ref: M&S/EXP/2024/[ILLEGIBLE]</div></div><p style="font-size:9px;margin-bottom:7px;filter:blur(0.4px);">Certified experience in construction projects...</p><table style="filter:blur(0.6px) contrast(0.8);"><tr><th>Project</th><th>Value</th><th>Date</th></tr><tr><td>Const. of [illegible] Govt...</td><td>[illegible]</td><td>[2021?]</td></tr><tr><td>Renovation... ₹1.2[?] Cr</td><td>₹[blurry]</td><td>2022</td></tr><tr><td>Construction [illegible]</td><td>[torn]</td><td>[illegible]</td></tr></table><div class="stamp" style="opacity:0.35;filter:blur(1px);">CERTIFIED<br>[ILLEGIBLE]</div><div class="sig-area" style="filter:blur(0.8px);"><div>[Signature illegible]</div><div>[Authority illegible]</div></div></div>`,
+    conf:58, ext:'...3 project[s]... value not clearly legible...', pg:'Page 1 (Poor Quality)', clause:'Project table — partially legible', meth:'OCR (Low Confidence) — Poor Scan'
+  },
+  gst: {
+    title:'GST Registration Certificate',
+    pdf:`<div class="gov-pdf"><div class="pdf-lh"><div class="pdf-dept">Government of India — Ministry of Finance</div><div class="pdf-ttl">Goods and Services Tax Registration Certificate</div><div class="pdf-ref">Form GST REG-06</div></div><table><tr><th>Field</th><th>Details</th></tr><tr><td>GSTIN</td><td><span class="hi-val">07AAACR5055K1ZS</span></td></tr><tr><td>Legal Name</td><td>Rajesh Constructions Pvt. Ltd.</td></tr><tr><td>Date of Registration</td><td>01/07/2017</td></tr><tr><td>Status</td><td><strong>ACTIVE</strong></td></tr><tr><td>State</td><td>Delhi (07)</td></tr></table><div class="stamp">GSTN<br>VERIFIED<br>ACTIVE</div><div class="sig-area"><div>GSTN Portal<br>Auto-generated</div><div>Valid until cancellation</div></div></div>`,
+    conf:99, ext:'GSTIN — ACTIVE (verified)', pg:'Page 1', clause:'GSTIN and Status fields', meth:'OCR + GSTN API Lookup'
+  },
+  iso: {
+    title:'ISO 9001:2015 Certificate — Bureau Veritas',
+    pdf:`<div class="gov-pdf"><div class="pdf-lh"><div class="pdf-dept">Bureau Veritas Certification India</div><div class="pdf-ttl">Certificate of Registration — ISO 9001:2015</div><div class="pdf-ref">Certificate No.: IN24/00847 | Accreditation: NAB India</div></div><p style="font-size:9px;margin-bottom:7px;">This certifies that the QMS of <strong>Rajesh Constructions Pvt. Ltd.</strong> conforms to:</p><table><tr><th>Standard</th><th>Scope</th><th>Issue</th><th>Expiry</th></tr><tr><td><span class="hi-val">ISO 9001:2015</span></td><td>Civil & Structural Construction</td><td>Apr 2023</td><td>Mar 2026</td></tr></table><div class="stamp">CERTIFIED<br>ISO 9001:2015<br>BV ✓</div><div class="sig-area"><div>Regional Manager<br>Bureau Veritas India<br>___________</div><div>Technical Signatory<br>BV Certification<br>___________</div></div></div>`,
+    conf:97, ext:'ISO 9001:2015 | Expiry: March 2026', pg:'Page 1', clause:'Standard + Expiry Date fields', meth:'OCR + Date Validation'
+  }
+};
+
+// Maps bidder+criterion to doc key
+const DOC_MAP = [
+  ['fin_ok','exp_ok','gst','iso'],
+  ['fin_fail','exp_ok','gst','iso'],
+  ['fin_ok','exp_ok','gst','iso'],
+  ['fin_ok','exp_poor','gst','iso'],
+  []
+];
+
+// ── UTILS ──────────────────────────────────────────────
+function now(){ return new Date().toLocaleTimeString('en-IN',{hour12:false}); }
+
+function alog(msg){
+  S.logCnt++;
+  const body = document.getElementById('al-body');
+  const el = document.createElement('div');
+  el.className = 'al-entry';
+  el.innerHTML = `<div class="al-t">${now()}</div><div class="al-m">${msg}</div>`;
+  body.appendChild(el);
+  body.scrollTop = body.scrollHeight;
+  document.getElementById('fab-cnt').textContent = S.logCnt;
+}
+
+function toast(msg, type='info'){
+  const cols={info:var_blue,success:'#10B981',error:'#EF4444',warning:'#D97706'};
+  const tc=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.style.cssText=`background:${cols[type]||'#1B4F8A'};color:white;padding:10px 16px;border-radius:5px;font-size:12px;font-weight:600;font-family:var(--font);box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:auto;max-width:320px;animation:slideIn .3s ease;`;
+  t.textContent=msg; tc.appendChild(t);
+  setTimeout(()=>t.remove(),3400);
+}
+const var_blue='#1B4F8A';
+
+function toggleAud(){ document.getElementById('aud-drawer').classList.toggle('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+// ── API KEY ────────────────────────────────────────────
+function saveKey(){
+  const v=document.getElementById('api-key-in').value.trim();
+  if(!v){toast('Please enter an API key','error');return;}
+  S.apiKey=v;
+  closeModal('modal-apikey');
+  const btn=document.getElementById('ai-btn');
+  btn.className='ai-btn on';
+  document.getElementById('ai-txt').textContent='AI: Connected';
+  toast('AI reasoning enabled ✓','success');
+  alog('Anthropic API key configured — AI reasoning enabled');
+}
+function skipKey(){ closeModal('modal-apikey'); alog('Session started (demo mode) — Officer #OFC-2847'); }
+function openKeyModal(){ if(!S.apiKey) document.getElementById('modal-apikey').classList.add('active'); }
+
+// ── NAVIGATION ─────────────────────────────────────────
+function goStage(n){
+  if(n>1&&!S.loaded){toast('Please load a tender first','warning');return;}
+  if(n>2&&!S.approved){toast('Please approve criteria first','warning');return;}
+  S.stage=n;
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  document.getElementById('stage-'+n).classList.add('active');
+  for(let i=1;i<=4;i++){
+    const stp=document.getElementById('stp'+i);
+    const sn=document.getElementById('sn'+i);
+    stp.classList.remove('active','done');
+    if(i<n){stp.classList.add('done');sn.innerHTML='✓';}
+    else if(i===n){stp.classList.add('active');sn.innerHTML=i;}
+    else sn.innerHTML=i;
+  }
+  if(n===4) document.getElementById('rpt-gen').textContent=new Date().toLocaleString('en-IN');
+}
+
+// ── STAGE 1 ────────────────────────────────────────────
+function handleFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  runExtract(f.name,(f.size/1024/1024).toFixed(1)+' MB');
+}
+function loadDemo(){
+  alog('Demo tender loaded: CRPF_Construction_Tender_2024.pdf');
+  runExtract('CRPF_Construction_Tender_2024.pdf','4.7 MB');
+}
+function runExtract(fn,fs){
+  const fp=document.getElementById('file-pill');
+  document.getElementById('pill-fn').textContent=fn;
+  document.getElementById('pill-fs').textContent=fs+' · PDF Document';
+  fp.classList.add('show');
+  document.getElementById('uzone').style.display='none';
+  toast('Reading tender document…','info');
+  const ep=document.getElementById('ext-panel');
+  ep.innerHTML='<div class="extract-load"><div class="spin"></div><p>Reading tender document...</p></div>';
+  alog('Tender document parsing initiated');
+  setTimeout(()=>{
+    showExtract(ep);
+    S.loaded=true;
+    document.getElementById('s1-proceed').style.display='block';
+    document.getElementById('nav-tid').textContent='CRPF/2024/CONST/0847';
+    document.getElementById('ext-badge').style.display='inline-flex';
+    alog('Criteria extracted — 4 criteria identified (3 rule-based, 1 qualitative)');
+    toast('Extraction complete — 4 criteria identified','success');
+  },2200);
+}
+function showExtract(ep){
+  ep.innerHTML=`
+    <div class="meta-row"><div class="meta-lbl">Tender ID</div><div class="meta-val">CRPF/2024/CONST/0847</div></div>
+    <div class="meta-row"><div class="meta-lbl">Department</div><div class="meta-val">Central Reserve Police Force</div></div>
+    <div class="meta-row"><div class="meta-lbl">Category</div><div class="meta-val"><span class="mbadge">Civil Construction</span></div></div>
+    <div class="meta-row"><div class="meta-lbl">Deadline</div><div class="meta-val">15 June 2024</div></div>
+    <div class="meta-row"><div class="meta-lbl">Est. Value</div><div class="meta-val">₹12.5 Crore</div></div>
+    <div class="meta-row"><div class="meta-lbl">Criteria Found</div><div class="meta-val"><span class="mbadge">4 criteria</span></div></div>
+  `;
+}
+function proceedS2(){
+  buildCriteria();
+  goStage(2);
+  alog('Officer proceeded to Criteria Review stage');
+}
+
+// ── STAGE 2 ────────────────────────────────────────────
+function buildCriteria(){
+  document.getElementById('crit-grid').innerHTML=CRITERIA.map(c=>`
+    <div class="crit-card" id="cc-${c.n}">
+      <div class="approved-stamp">APPROVED ✓</div>
+      <div class="cc-hdr"><span class="cc-num">CRITERION ${c.n}</span><span class="typ-badge ${c.tc}">${c.type}</span></div>
+      <div class="cc-body">
+        <textarea class="crit-ta" id="ct-${c.n}">${c.text}</textarea>
+        <div class="crit-meta">
+          <span class="thresh-pill">${c.thresh}</span>
+          <span class="src-ref">${c.src}</span>
+        </div>
+      </div>
+      <div class="cc-ftr">
+        <div class="mand-row"><div class="tog"></div>Mandatory</div>
+        ${c.tip?`<div class="tt-wrap" title="${c.tip}"><span class="meth-badge ${c.mc}">${c.meth}</span><div class="tt-ico">i</div></div>`:
+        `<span class="meth-badge ${c.mc}">${c.meth}</span>`}
+      </div>
+    </div>
+  `).join('');
+}
+function openApprove(){ document.getElementById('modal-approve').classList.add('active'); alog('Approval modal opened by Officer #OFC-2847'); }
+function doApprove(){
+  closeModal('modal-approve');
+  S.approved=true;
+  CRITERIA.forEach(c=>document.getElementById('cc-'+c.n).classList.add('approved'));
+  alog('4 criteria APPROVED and locked by Officer #OFC-2847');
+  toast('Criteria approved and locked ✓','success');
+  setTimeout(()=>{ buildBidders(); goStage(3); alog('Evaluation stage started — debarment checks running'); },950);
+}
+
+// ── STAGE 3 ────────────────────────────────────────────
+function buildBidders(){
+  document.getElementById('b-list').innerHTML=BIDDERS.map((b,i)=>`
+    <div class="b-row" id="br-${i}" onclick="selBidder(${i})">
+      <div class="b-name">${b.name}</div>
+      <div class="b-row-ft">
+        <span class="sbadge ${b.sc}">${b.icon} ${b.status}</span>
+        ${b.conf>0?`<span class="cpct">${b.conf}%</span>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selBidder(i){
+  S.bidder=i;
+  document.querySelectorAll('.b-row').forEach((r,j)=>r.classList.toggle('sel',j===i));
+  alog('Viewing evaluation: '+BIDDERS[i].name);
+  renderBidder(BIDDERS[i]);
+}
+
+function renderBidder(b){
+  const det=document.getElementById('b-detail');
+  let h='';
+  if(b.deb) h+=`<div class="deb-banner"><div class="dico">⛔</div><div class="dtxt"><strong>EVALUATION HALTED — Vendor match found in CPPP Debarred Registry</strong>GSTIN ${b.gstin} matches a debarred entity. Referred to senior officer. No further evaluation conducted.</div></div>`;
+  h+=`<div class="co-hdr"><div class="co-name">${b.name}</div><div class="co-ids"><div class="co-id"><strong>GSTIN</strong>${b.gstin}</div><div class="co-id"><strong>PAN</strong>${b.pan}</div></div><div class="deb-row">${b.deb?`<div class="deb-badge deb-fail">⛔ DEBARRED — Match found in CPPP registry</div>`:`<div class="deb-badge deb-ok">🛡 VERIFIED — Not on debarred list</div>`}<div class="coi-lbl">✓ No conflict of interest detected</div></div>${b.jv?`<div class="jv-row">Joint Venture: <strong>${b.jv.lead}</strong> + ${b.jv.part}</div>`:''}</div>`;
+  if(!b.deb){
+    h+=`<div class="eval-wrap"><h4>Criterion-by-Criterion Evaluation</h4><table class="etable"><thead><tr><th>Criterion</th><th>Document</th><th>Extracted Value</th><th>Threshold</th><th>Verdict</th><th>Confidence</th><th></th></tr></thead><tbody>`;
+    CRITERIA.forEach((c,ci)=>{
+      const ev=b.crit[ci]; if(!ev) return;
+      const cf=ev.conf>=80?'cfill-hi':ev.conf>=60?'cfill-md':'cfill-lo';
+      h+=`<tr><td><strong style="font-size:11px;">${c.type}</strong><br><span class="dref">Criterion ${c.n}</span></td><td><div class="dref">${ev.doc}</div></td><td><div class="xval">${ev.xval}</div><div class="nval">${ev.nval}</div></td><td><div class="thresh">${ev.thresh}</div></td><td><span class="${ev.vc}">${ev.v}</span></td><td><div class="cbar-wrap"><div class="cbar-bg"><div class="cbar-fill ${cf}" data-t="${ev.conf}"></div></div><span class="cpct2">${ev.conf}%</span></div></td><td><button class="vsrc-btn" onclick="openDoc(${b.id},${ci})">View Source</button></td></tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  det.innerHTML=h;
+  setTimeout(()=>det.querySelectorAll('.cbar-fill').forEach(bar=>{bar.style.width=bar.dataset.t+'%';}),60);
+  if(!b.deb) renderClaude(b);
+  if(b.id===3&&!b.deb) renderHR(b);
+}
+
+// ── CLAUDE ─────────────────────────────────────────────
+function renderClaude(b){
+  const det=document.getElementById('b-detail');
+  const div=document.createElement('div'); div.id='cl-'+b.id; div.className='claude-card';
+  if(S.claudeCache[b.id]){
+    div.innerHTML=`<div class="cl-hdr"><span>🤖</span><h4>AI Reasoning — Criterion 2: Similar Projects (Qualitative)</h4><span class="cl-tag">claude-3-5-sonnet</span></div><div class="cl-resp show">${mkClaudeResp(S.claudeCache[b.id])}</div>`;
+  } else {
+    div.innerHTML=`<div class="cl-hdr"><span>🤖</span><h4>AI Reasoning — Criterion 2: Similar Projects (Qualitative)</h4><span class="cl-tag">claude-3-5-sonnet</span></div><div class="cl-loading" id="cll-${b.id}"><div class="cl-dots"><span></span><span></span><span></span></div><span>AI is reasoning about project similarity...</span></div><div class="cl-resp" id="clr-${b.id}"></div>`;
+  }
+  det.appendChild(div);
+  if(!S.claudeCache[b.id]) callClaude(b);
+}
+
+function mkClaudeResp(text){
+  let rc='rec-rev', rl='REQUIRES HUMAN REVIEW';
+  if(text.includes('RECOMMENDATION: COMPLIANT')){rc='rec-ok';rl='COMPLIANT';}
+  else if(text.includes('RECOMMENDATION: NON-COMPLIANT')){rc='rec-no';rl='NON-COMPLIANT';}
+  const clean=text.replace(/RECOMMENDATION:.*$/,'').trim();
+  return `<div class="cl-txt">${clean}</div><div class="cl-rec ${rc}">RECOMMENDATION: ${rl}</div>`;
+}
+
+async function callClaude(b){
+  const bId=b.id;
+  if(!S.apiKey){
+    await new Promise(r=>setTimeout(r,1700));
+    const resp=DEMO_CLAUDE[bId]||DEMO_CLAUDE[0];
+    S.claudeCache[bId]=resp; showClaudeResult(bId,resp);
+    alog(`AI reasoning complete for ${b.name} — Criterion 2`);
+    return;
+  }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-3-5-sonnet-20241022',max_tokens:300,
+        system:"You are a government procurement evaluation AI. Evaluate whether the bidder's project experience meets the tender criterion. Be specific, cite the project descriptions, and give a clear recommendation. Respond in 3-4 sentences maximum. End with: RECOMMENDATION: COMPLIANT or RECOMMENDATION: NON-COMPLIANT or RECOMMENDATION: REQUIRES HUMAN REVIEW",
+        messages:[{role:'user',content:`Tender Criterion: Minimum 3 similar construction projects completed in last 5 years, each valued at minimum ₹1 Crore.\n\nBidder's declared projects:\n${PROJECTS[bId]}\n\nDoes this bidder meet the criterion? Reason carefully about project similarity and value thresholds.`}]})
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'Unable to retrieve AI response.';
+    S.claudeCache[bId]=text; showClaudeResult(bId,text);
+    alog(`Claude AI reasoning complete for ${b.name} (Criterion 2)`);
+  } catch(e){
+    const fb='AI reasoning unavailable. Please check API key. RECOMMENDATION: REQUIRES HUMAN REVIEW';
+    S.claudeCache[bId]=fb; showClaudeResult(bId,fb);
+  }
+}
+
+function showClaudeResult(bId,text){
+  const ll=document.getElementById('cll-'+bId);
+  const rr=document.getElementById('clr-'+bId);
+  if(!ll||!rr) return;
+  ll.style.display='none';
+  rr.innerHTML=mkClaudeResp(text);
+  rr.classList.add('show');
+}
+
+// ── HUMAN REVIEW ───────────────────────────────────────
+function renderHR(b){
+  const det=document.getElementById('b-detail');
+  const panel=document.createElement('div'); panel.className='hr-panel';
+  const sub=S.hrSubs[b.id];
+  panel.innerHTML=`<div class="hr-hdr"><h4>👁 Human Review Required — Criterion 2 (Experience)</h4><span class="hr-sub">Confidence: 58% — manual confirmation needed</span></div><div class="hr-body"><div class="hr-doc">MEHTA & SONS CONSTRUCTION WORKS<br>Experience Certificate & Project Portfolio<br>─────────────────────────────────<br>Sl | Project Description | Value | Status<br>1 | Const. of [ILLEGIBLE] Govt. Premises... | ₹[ILLEGIBLE] | Completed<br>2 | Renovation works... ₹1.2 [BLURRY] Crore | Appx... | Done<br>3 | Construction project [REST ILLEGIBLE]...<br>Certified by: [STAMP ILLEGIBLE]</div><div class="hr-partial"><span style="color:rgba(255,255,255,0.35);font-size:10px;display:block;margin-bottom:5px;">PARTIAL AI READ — LOW CONFIDENCE (58%)</span>"...3 project<span class="illeg">[s]</span>... government <span class="illeg">[type illegible]</span>...<br>value <span class="illeg">[not clearly legible]</span>... completed <span class="illeg">[date illegible]</span>...<br>₹<span class="illeg">[figure unclear — could be 1.2 or 1.02 Crore]</span>"</div>${sub?`<div class="hr-done show">✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${sub.time}<br>Decision: <strong>${sub.decision}</strong> | Notes: ${sub.notes||'(none)'}<br>Action logged to audit trail.</div>`:`<div class="hr-acts"><button class="btn btn-ok" style="flex:1;" onclick="submitHR(3,'COMPLIANT')">✓ Mark as Compliant</button><button class="btn btn-bad" style="flex:1;" onclick="submitHR(3,'NON-COMPLIANT')">✗ Mark as Non-Compliant</button></div><textarea class="hr-notes" id="hrn-3" placeholder="Reviewer notes (optional)..."></textarea><button class="btn btn-p" style="width:100%;" onclick="submitHR(3,null)">Submit Review</button><div class="hr-done" id="hrd-3"></div>`}</div>`;
+  det.appendChild(panel);
+}
+
+function submitHR(bIdx,dec){
+  const notes=document.getElementById('hrn-'+bIdx)?.value||'';
+  if(!dec){toast('Please click Compliant or Non-Compliant first','warning');return;}
+  const t=now();
+  S.hrSubs[bIdx]={decision:dec,notes,time:t};
+  const hrd=document.getElementById('hrd-'+bIdx);
+  if(hrd){
+    hrd.innerHTML=`✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${t}<br>Decision: <strong>${dec}</strong> | Notes: ${notes||'(none)'}<br>Action logged to audit trail.`;
+    hrd.classList.add('show');
+  }
+  alog(`Human review submitted for Mehta & Sons (Criterion 2) by #OFC-2847 — ${dec}`);
+  toast('Review submitted and logged ✓','success');
+}
+
+// ── DOCUMENT SOURCE MODAL ──────────────────────────────
+function openDoc(bIdx,ci){
+  const key=DOC_MAP[bIdx]?.[ci]; if(!key) return;
+  const d=DOC_DATA[key]; if(!d) return;
+  document.getElementById('dm-ttl').textContent=d.title;
+  document.getElementById('dm-pdf').innerHTML=`<div style="font-size:10px;color:var(--gray);margin-bottom:9px;font-family:var(--mono);">${d.conf<70?'⚠ Low quality scan — AI confidence: '+d.conf+'%':'Document extracted with high confidence: '+d.conf+'%'}</div>${d.pdf}`;
+  document.getElementById('dm-xi').innerHTML=`<h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px;">Extraction Details</h4>
+    <div class="xi-row"><div class="xi-lbl">Extracted Value</div><div class="xi-val" style="color:var(--blue);font-weight:700;">${d.ext}</div></div>
+    <div class="xi-row"><div class="xi-lbl">Source Page</div><div class="xi-val">${d.pg}</div></div>
+    <div class="xi-row"><div class="xi-lbl">Source Clause</div><div class="xi-val">${d.clause}</div></div>
+    <div class="xi-row"><div class="xi-lbl">Method Used</div><div class="xi-val">${d.meth}</div></div>
+    <div class="xi-row"><div class="xi-lbl">Confidence</div><div class="xi-val"><div style="display:flex;align-items:center;gap:7px;"><div style="flex:1;height:7px;background:var(--gray-border);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.conf}%;background:${d.conf>=80?'var(--green)':d.conf>=60?'var(--amber)':'var(--red)'};border-radius:3px;"></div></div><strong>${d.conf}%</strong></div></div></div>
+    <div class="xi-row"><div class="xi-lbl">Timestamp</div><div class="xi-val">${new Date().toLocaleString('en-IN')}</div></div>
+    ${d.conf<70?'<div style="margin-top:14px;background:var(--amber-pale);border:1px solid #FDE68A;border-radius:5px;padding:11px;font-size:11px;color:#78350F;">⚠ <strong>Low quality scan detected.</strong> AI extraction confidence below 70% auto-commit threshold. Human review of original document is mandatory.</div>':''}
+  `;
+  document.getElementById('modal-doc').classList.add('active');
+  alog('Document source viewed: '+d.title);
+}
+
+// ── STAGE 4 ────────────────────────────────────────────
+function dlReport(){ toast('Report downloaded: CRPF_2024_CONST_0847_Evaluation_Report.pdf','success'); alog('Final report downloaded by Officer #OFC-2847'); }
+
+// ── INIT ───────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  alog('System started — TenderMind AI v2.4.1');
+  alog('Officer #OFC-2847 session initialised');
+});
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o&&o.id!=='modal-apikey') o.classList.remove('active'); });
+});
+</script>
+</body>
+</html>
