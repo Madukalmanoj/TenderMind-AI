@@ -129,8 +129,23 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 .src-ref { font-size:10px; color:var(--gray); font-style:italic; }
 .cc-ftr { padding:10px 15px; border-top:1px solid var(--gray-border); display:flex; align-items:center; justify-content:space-between; background:var(--gray-light); }
 .mand-row { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text-2); font-weight:500; }
-.tog { width:34px; height:19px; background:var(--green); border-radius:10px; position:relative; cursor:pointer; flex-shrink:0; }
+.tog { width:34px; height:19px; background:var(--green); border-radius:10px; position:relative; cursor:pointer; flex-shrink:0; transition:background .2s; }
 .tog::after { content:''; position:absolute; width:15px; height:15px; background:white; border-radius:50%; top:2px; right:2px; transition:right .2s; }
+.tog.off { background:var(--gray-border); }
+.tog.off::after { right:17px; }
+.mand-lbl { transition:color .15s; }
+.mand-lbl.off { color:#bbb; text-decoration:line-through; }
+.add-crit-btn { display:flex; align-items:center; gap:7px; padding:9px 16px; background:white; border:1.5px dashed var(--blue-light); color:var(--blue); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .15s; width:100%; justify-content:center; margin-bottom:14px; }
+.add-crit-btn:hover { background:var(--blue-pale,#EFF6FF); border-color:var(--blue); }
+.crit-custom { border-color:var(--blue-light); }
+.crit-custom .cc-hdr { background:#F0F7FF; }
+.rm-crit-btn { background:none; border:none; cursor:pointer; color:var(--red); font-size:14px; padding:2px 5px; border-radius:3px; line-height:1; }
+.rm-crit-btn:hover { background:var(--red-pale); }
+.ac-form label { font-size:11px; font-weight:600; color:var(--text-2); display:block; margin-bottom:4px; margin-top:12px; text-transform:uppercase; letter-spacing:.05em; }
+.ac-form input,.ac-form textarea,.ac-form select { width:100%; border:1.5px solid var(--gray-border); border-radius:5px; padding:8px 11px; font-family:var(--font); font-size:12px; background:var(--gray-light); }
+.ac-form input:focus,.ac-form textarea:focus,.ac-form select:focus { outline:none; border-color:var(--blue-light); background:white; }
+.ac-form textarea { resize:vertical; min-height:72px; }
+.ac-row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .meth-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .meth-rule { background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; }
 .meth-ai { background:var(--amber-pale); color:#92400E; border:1px solid #FCD34D; }
@@ -723,10 +738,60 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
   <div class="stage" id="stage-2">
     <div class="s2-hdr">
       <h2>Review Extracted Criteria Before Evaluation Begins</h2>
-      <p>Correct any errors in the extracted text. Once approved, these criteria will be locked and applied consistently to all bidders.</p>
+      <p>Correct any errors in the extracted text. Toggle any criterion to Optional if it should not disqualify bidders. Once approved, these criteria will be locked and applied consistently to all bidders.</p>
     </div>
     <div class="crit-grid" id="crit-grid"></div>
+    <button class="add-crit-btn" onclick="openAddCriterion()">＋ Add Missing Criterion</button>
     <button class="btn btn-ok btn-lg" onclick="openApprove()">✓ Approve Criteria &amp; Begin Evaluation</button>
+  </div>
+
+  <!-- ADD CRITERION MODAL -->
+  <div class="modal-overlay" id="modal-add-crit">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-hdr"><h3>＋ Add Missing Criterion</h3><button class="modal-close" onclick="closeModal('modal-add-crit')">×</button></div>
+      <div class="modal-body ac-form">
+        <label>Criterion Description</label>
+        <textarea id="ac-text" placeholder="Describe the eligibility requirement clearly (e.g. 'Bidder must hold a valid NSIC registration...')"></textarea>
+        <div class="ac-row2">
+          <div>
+            <label>Type</label>
+            <select id="ac-type">
+              <option value="FINANCIAL">Financial</option>
+              <option value="EXPERIENCE">Experience</option>
+              <option value="COMPLIANCE">Compliance</option>
+              <option value="CERTIFICATION">Certification</option>
+              <option value="LEGAL">Legal</option>
+              <option value="TECHNICAL">Technical</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Threshold / Requirement</label>
+            <input id="ac-thresh" type="text" placeholder="e.g. Valid NSIC cert">
+          </div>
+        </div>
+        <div class="ac-row2">
+          <div>
+            <label>Evaluation Method</label>
+            <select id="ac-meth">
+              <option value="RULE ENGINE">Rule Engine</option>
+              <option value="AI + HUMAN REVIEW">AI + Human Review</option>
+            </select>
+          </div>
+          <div>
+            <label>Source Reference (optional)</label>
+            <input id="ac-src" type="text" placeholder="e.g. Clause 4.5(b), Page 12">
+          </div>
+        </div>
+        <div style="margin-top:14px;background:var(--amber-pale);border:1px solid #FDE68A;border-radius:5px;padding:9px 12px;font-size:11px;color:#78350F;">
+          ⚠ Added criteria apply to all bidders in this evaluation. Criteria added after extraction are marked as <strong>Manually Added</strong> in the audit trail.
+        </div>
+      </div>
+      <div class="modal-ftr" style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" onclick="closeModal('modal-add-crit')" style="flex:1;">Cancel</button>
+        <button class="btn btn-ok" onclick="submitAddCriterion()" style="flex:2;">Add Criterion →</button>
+      </div>
+    </div>
   </div>
 
   <!-- STAGE 3 -->
@@ -870,6 +935,9 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 // ── STATE ──────────────────────────────────────────────
 const S = { apiKey:null, stage:1, loaded:false, approved:false, bidder:null, claudeCache:{}, hrSubs:{}, logCnt:0 };
 let hrPending = {}; // tracks selected (but not yet submitted) HR decisions per bidder id
+let critMandatory = {}; // n -> true/false; true = mandatory
+let customCriteria = []; // manually added criteria
+let nextCustomCritId = 10; // start custom criteria IDs at 10
 
 // ── DATA ───────────────────────────────────────────────
 const CRITERIA = [
@@ -1114,25 +1182,108 @@ function proceedS2(){
 }
 
 // ── STAGE 2 ────────────────────────────────────────────
+function critTypeClass(type){
+  return {FINANCIAL:'typ-fin',EXPERIENCE:'typ-exp',COMPLIANCE:'typ-com',CERTIFICATION:'typ-cert',LEGAL:'typ-com',TECHNICAL:'typ-fin',OTHER:'typ-cert'}[type]||'typ-cert';
+}
+function critMethClass(meth){
+  return meth==='AI + HUMAN REVIEW'?'meth-ai':'meth-rule';
+}
+
 function buildCriteria(){
-  document.getElementById('crit-grid').innerHTML=CRITERIA.map(c=>`
-    <div class="crit-card" id="cc-${c.n}">
+  // init mandatory state for base criteria
+  CRITERIA.forEach(c=>{ if(critMandatory[c.n]===undefined) critMandatory[c.n]=true; });
+  customCriteria.forEach(c=>{ if(critMandatory[c.n]===undefined) critMandatory[c.n]=true; });
+
+  const allCriteria = [...CRITERIA, ...customCriteria];
+  document.getElementById('crit-grid').innerHTML = allCriteria.map((c,idx)=>{
+    const isMand = critMandatory[c.n]!==false;
+    const togClass = isMand?'':'off';
+    const lblClass = isMand?'':'off';
+    const isCustom = !!c.custom;
+    return `
+    <div class="crit-card${isCustom?' crit-custom':''}" id="cc-${c.n}">
       <div class="approved-stamp">APPROVED ✓</div>
-      <div class="cc-hdr"><span class="cc-num">CRITERION ${c.n}</span><span class="typ-badge ${c.tc}">${c.type}</span></div>
+      <div class="cc-hdr">
+        <span class="cc-num">CRITERION ${idx+1}${isCustom?' <span style="font-size:9px;background:rgba(59,130,246,.12);border:1px solid #BFDBFE;border-radius:3px;padding:1px 5px;color:#1D4ED8;font-weight:700;vertical-align:middle;">MANUAL</span>':''}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="typ-badge ${c.tc||critTypeClass(c.type)}">${c.type}</span>
+          ${isCustom?`<button class="rm-crit-btn" title="Remove criterion" onclick="removeCustomCriterion(${c.n})">×</button>`:''}
+        </div>
+      </div>
       <div class="cc-body">
         <textarea class="crit-ta" id="ct-${c.n}">${c.text}</textarea>
         <div class="crit-meta">
-          <span class="thresh-pill">${c.thresh}</span>
+          <span class="thresh-pill">${c.thresh||'—'}</span>
           <span class="src-ref">${c.src}</span>
         </div>
       </div>
       <div class="cc-ftr">
-        <div class="mand-row"><div class="tog"></div>Mandatory</div>
-        ${c.tip?`<div class="tt-wrap" title="${c.tip}"><span class="meth-badge ${c.mc}">${c.meth}</span><div class="tt-ico">i</div></div>`:
-        `<span class="meth-badge ${c.mc}">${c.meth}</span>`}
+        <div class="mand-row" onclick="toggleMandatory(${c.n})" style="cursor:pointer;user-select:none;">
+          <div class="tog ${togClass}" id="tog-${c.n}"></div>
+          <span class="mand-lbl ${lblClass}" id="mandlbl-${c.n}">${isMand?'Mandatory':'Optional'}</span>
+        </div>
+        ${c.tip?`<div class="tt-wrap" title="${c.tip}"><span class="meth-badge ${c.mc||critMethClass(c.meth)}">${c.meth}</span><div class="tt-ico">i</div></div>`:
+        `<span class="meth-badge ${c.mc||critMethClass(c.meth)}">${c.meth}</span>`}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+function toggleMandatory(n){
+  critMandatory[n] = !critMandatory[n];
+  const isMand = critMandatory[n];
+  const tog = document.getElementById('tog-'+n);
+  const lbl = document.getElementById('mandlbl-'+n);
+  if(tog){ tog.classList.toggle('off', !isMand); }
+  if(lbl){ lbl.classList.toggle('off', !isMand); lbl.textContent = isMand?'Mandatory':'Optional'; }
+  const allCriteria = [...CRITERIA,...customCriteria];
+  const c = allCriteria.find(c=>c.n===n);
+  alog(`Criterion ${n}${c?' ('+c.type+')':''} set to ${isMand?'MANDATORY':'OPTIONAL'} by Officer #OFC-2847`);
+}
+
+// ── ADD CRITERION ────────────────────────────────────────
+function openAddCriterion(){
+  document.getElementById('ac-text').value='';
+  document.getElementById('ac-thresh').value='';
+  document.getElementById('ac-src').value='';
+  document.getElementById('ac-type').value='FINANCIAL';
+  document.getElementById('ac-meth').value='RULE ENGINE';
+  document.getElementById('modal-add-crit').classList.add('active');
+}
+
+function submitAddCriterion(){
+  const text  = document.getElementById('ac-text').value.trim();
+  const type  = document.getElementById('ac-type').value;
+  const thresh= document.getElementById('ac-thresh').value.trim();
+  const meth  = document.getElementById('ac-meth').value;
+  const src   = document.getElementById('ac-src').value.trim()||'Manually added by Officer #OFC-2847';
+  if(!text){ toast('Please enter a criterion description','warning'); return; }
+  if(!thresh){ toast('Please enter a threshold or requirement','warning'); return; }
+  const id = nextCustomCritId++;
+  customCriteria.push({
+    n: id,
+    type,
+    tc: critTypeClass(type),
+    text,
+    thresh,
+    src,
+    meth,
+    mc: critMethClass(meth),
+    custom: true
+  });
+  critMandatory[id] = true;
+  closeModal('modal-add-crit');
+  buildCriteria();
+  alog(`Custom criterion added (${type}): "${text.substring(0,60)}${text.length>60?'...':''}" — by Officer #OFC-2847`);
+  toast(`Criterion added: ${type}`, 'success');
+}
+
+function removeCustomCriterion(n){
+  customCriteria = customCriteria.filter(c=>c.n!==n);
+  delete critMandatory[n];
+  buildCriteria();
+  alog(`Custom criterion #${n} removed by Officer #OFC-2847`);
+  toast('Criterion removed','info');
 }
 function openApprove(){ document.getElementById('modal-approve').classList.add('active'); alog('Approval modal opened by Officer #OFC-2847'); }
 function doApprove(){
