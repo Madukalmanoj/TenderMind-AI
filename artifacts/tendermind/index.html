@@ -781,6 +781,14 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
         </div>
       </div>
     </div>
+
+    <!-- STAGE 3 FOOTER -->
+    <div id="s3-footer" style="display:none;margin-top:18px;background:var(--navy);border-radius:8px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div id="s3-footer-status" style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.6;"></div>
+      <button id="s3-proceed-btn" class="btn btn-ok btn-lg" style="min-width:220px;white-space:nowrap;" onclick="proceedToFinalReport()">
+        Generate Final Report →
+      </button>
+    </div>
   </div>
 
   <!-- STAGE 4 -->
@@ -1540,6 +1548,7 @@ function buildBidders(){
     </div>
   `).join('');
   buildComparisonTable();
+  updateS3Footer();
 }
 
 // ── COMPARISON VIEW ─────────────────────────────────────
@@ -1654,6 +1663,72 @@ function jumpToDetail(i){
   // scroll bidder into view
   const row=document.getElementById('br-'+i);
   if(row) row.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── STAGE 3 FOOTER ──────────────────────────────────────
+function updateS3Footer(){
+  const footer = document.getElementById('s3-footer');
+  const status = document.getElementById('s3-footer-status');
+  const btn    = document.getElementById('s3-proceed-btn');
+  if(!footer||!status||!btn) return;
+
+  const active = getActiveBidders();
+  // Find bidders with REVIEW verdict that haven't been submitted yet
+  const needsReview = active.filter(b =>
+    !b.deb &&
+    b.crit.some(c=>c.v==='REVIEW') &&
+    !S.hrSubs[b.id]
+  );
+  const eligible  = active.filter(b=>!b.deb && b.crit.filter(c=>c.v==='FAIL').length===0 && b.crit.filter(c=>c.v==='REVIEW').length===0).length;
+  const notElig   = active.filter(b=>!b.deb && b.crit.filter(c=>c.v==='FAIL').length>0).length;
+  const debarred  = active.filter(b=>b.deb).length;
+  const reviewed  = active.filter(b=>!b.deb && b.crit.some(c=>c.v==='REVIEW') && S.hrSubs[b.id]).length;
+
+  footer.style.display = 'flex';
+
+  if(needsReview.length > 0){
+    const names = needsReview.map(b=>`<strong style="color:white;">${b.name}</strong>`).join(', ');
+    status.innerHTML = `⚠ <strong style="color:#FCD34D;">${needsReview.length} pending human review${needsReview.length>1?'s':''}</strong> — complete before proceeding<br><span style="font-size:11px;opacity:.7;">${names}</span>`;
+    btn.textContent  = `⚠ ${needsReview.length} Review${needsReview.length>1?'s':''} Pending`;
+    btn.className    = 'btn btn-lg';
+    btn.style.cssText= 'min-width:220px;white-space:nowrap;background:#D97706;color:white;border:none;cursor:pointer;';
+  } else {
+    const parts = [];
+    if(eligible>0)  parts.push(`<span style="color:#6EE7B7;">${eligible} eligible</span>`);
+    if(reviewed>0)  parts.push(`<span style="color:#FCD34D;">${reviewed} reviewed</span>`);
+    if(notElig>0)   parts.push(`<span style="color:#FCA5A5;">${notElig} not eligible</span>`);
+    if(debarred>0)  parts.push(`<span style="color:#F87171;">${debarred} debarred</span>`);
+    status.innerHTML = `✅ All reviews complete &mdash; ${active.length} bidder${active.length!==1?'s':''} evaluated<br><span style="font-size:11px;opacity:.75;">${parts.join(' &nbsp;·&nbsp; ')}</span>`;
+    btn.textContent  = 'Generate Final Report →';
+    btn.className    = 'btn btn-ok btn-lg';
+    btn.style.cssText= 'min-width:220px;white-space:nowrap;';
+  }
+}
+
+function proceedToFinalReport(){
+  const active = getActiveBidders();
+  const needsReview = active.filter(b =>
+    !b.deb &&
+    b.crit.some(c=>c.v==='REVIEW') &&
+    !S.hrSubs[b.id]
+  );
+  if(needsReview.length > 0){
+    const names = needsReview.map(b=>b.name).join(', ');
+    toast(`Complete human review for: ${names}`, 'warning');
+    // Highlight pending bidders in the list
+    needsReview.forEach(b=>{
+      const idx = active.indexOf(b);
+      const row = document.getElementById('br-'+idx);
+      if(row){ row.style.outline='2px solid #F59E0B'; row.style.outlineOffset='−1px'; setTimeout(()=>{row.style.outline='';},3000); }
+    });
+    // Switch to detail view and select first pending
+    setS3View('detail');
+    selBidder(active.indexOf(needsReview[0]));
+    return;
+  }
+  alog('All evaluations complete — proceeding to Final Report (Officer #OFC-2847)');
+  toast('Generating final report…','info');
+  goStage(4);
 }
 
 function selBidder(i){
@@ -1847,6 +1922,7 @@ function submitHR(bIdx){
   const bidder=active.find(b=>b.id===bIdx)||{name:'Bidder #'+bIdx};
   alog(`Human review submitted for ${bidder.name} (Criterion 2) by #OFC-2847 — ${dec}`);
   toast('Review submitted and logged ✓','success');
+  updateS3Footer();
 }
 
 // ── DOCUMENT SOURCE MODAL ──────────────────────────────
