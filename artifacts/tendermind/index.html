@@ -1890,7 +1890,248 @@ function buildSummaryTable(){
     auditNote.textContent=`Evaluation complete. ${customBidders.length} bidder(s) evaluated. ${debCount} debarred. ${customBidders.filter(b=>!b.deb&&b.crit.filter(c=>c.v==='FAIL').length===0&&b.crit.filter(c=>c.v==='REVIEW').length===0).length} fully eligible.`;
   }
 }
-function dlReport(){ toast('Report downloaded: CRPF_2024_CONST_0847_Evaluation_Report.pdf','success'); alog('Final report downloaded by Officer #OFC-2847'); }
+function dlReport(){
+  const active = getActiveBidders();
+  const ts = new Date().toLocaleString('en-IN',{dateStyle:'long',timeStyle:'medium'});
+  const refNo = 'CRPF/2024/CONST/0847';
+
+  // Gather audit log entries from DOM
+  const auditEls = document.querySelectorAll('.al-entry');
+  const auditRows = Array.from(auditEls).map(el=>{
+    const t = el.querySelector('.al-t')?.textContent||'';
+    const m = el.querySelector('.al-m')?.textContent||'';
+    return `<tr><td class="at">${t}</td><td>${m}</td></tr>`;
+  }).join('');
+
+  // Verdict badge helper
+  const vbadge = b => {
+    if(b.deb) return `<span class="vd deb">🚫 DEBARRED</span>`;
+    const fails = b.crit.filter(c=>c.v==='FAIL').length;
+    const revs  = b.crit.filter(c=>c.v==='REVIEW').length;
+    if(fails>0) return `<span class="vd no">✗ NOT ELIGIBLE</span>`;
+    if(revs>0)  return `<span class="vd rev">⚠ UNDER REVIEW</span>`;
+    return `<span class="vd ok">✓ ELIGIBLE</span>`;
+  };
+
+  const critName = ['C1 Financial','C2 Experience','C3 GST','C4 ISO'];
+  const cellVal = (b,ci) => {
+    if(b.deb) return '<span class="cv na">—</span>';
+    const c = b.crit[ci];
+    if(!c) return '<span class="cv na">—</span>';
+    if(c.v==='PASS')   return '<span class="cv p">PASS</span>';
+    if(c.v==='FAIL')   return '<span class="cv f">FAIL</span>';
+    if(c.v==='REVIEW') return '<span class="cv r">REVIEW</span>';
+    return '<span class="cv na">—</span>';
+  };
+
+  const bidderRows = active.map((b,i)=>{
+    const passed = b.crit.filter(c=>c.v==='PASS').length;
+    const failed = b.crit.filter(c=>c.v==='FAIL').length;
+    const review = b.crit.filter(c=>c.v==='REVIEW').length;
+    const hrSub  = S.hrSubs[b.id];
+    const hrNote = hrSub ? `<div class="hr-note">👁 Human Review: <strong>${hrSub.decision}</strong> at ${hrSub.time}${hrSub.notes?' — "'+hrSub.notes+'"':''}</div>` : '';
+    return `<tr>
+      <td class="bn"><strong>${i+1}. ${b.name}</strong>${b.isCustom?'<span class="tag">MANUAL</span>':''}<br><span class="gstin">${b.gstin}</span>${hrNote}</td>
+      <td>${vbadge(b)}</td>
+      <td>${cellVal(b,0)}</td>
+      <td>${cellVal(b,1)}</td>
+      <td>${cellVal(b,2)}</td>
+      <td>${cellVal(b,3)}</td>
+      <td class="cf">${b.conf>0?b.conf+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Per-bidder detail sections
+  const bidderDetails = active.filter(b=>!b.deb).map((b,i)=>{
+    const critRows = b.crit.map((c,ci)=>`
+      <tr>
+        <td>${critName[ci]}</td>
+        <td><span class="cv ${c.v==='PASS'?'p':c.v==='FAIL'?'f':'r'}">${c.v}</span></td>
+        <td>${c.conf||'—'}%</td>
+        <td>${c.xval||'—'}</td>
+        <td>${c.note||'—'}</td>
+        <td style="font-size:9px;color:#666;">${c.doc||'—'}</td>
+      </tr>`).join('');
+    return `<div class="detail-section">
+      <h3>${i+1}. ${b.name} <span class="gstin-h">${b.gstin}</span></h3>
+      <table>
+        <thead><tr><th>Criterion</th><th>Verdict</th><th>Conf</th><th>Extracted Value</th><th>Note</th><th>Source Document</th></tr></thead>
+        <tbody>${critRows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  const eligible = active.filter(b=>!b.deb && b.crit.filter(c=>c.v==='FAIL').length===0 && b.crit.filter(c=>c.v==='REVIEW').length===0).length;
+  const notElig  = active.filter(b=>!b.deb && b.crit.filter(c=>c.v==='FAIL').length>0).length;
+  const revCount = active.filter(b=>!b.deb && b.crit.filter(c=>c.v==='FAIL').length===0 && b.crit.filter(c=>c.v==='REVIEW').length>0).length;
+  const debarred = active.filter(b=>b.deb).length;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evaluation Report — ${refNo}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:#1a2332;background:#f4f6f9;padding:24px;}
+  .page{max-width:960px;margin:0 auto;background:white;border-radius:8px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  .hdr{background:#0A2647;color:white;padding:24px 28px;}
+  .hdr-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .hdr-logo{font-size:10px;letter-spacing:.1em;opacity:.55;text-transform:uppercase;margin-bottom:6px;}
+  .hdr-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+  .hdr-meta{font-size:11px;opacity:.7;line-height:1.7;}
+  .hdr-stamp{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:10px 14px;text-align:center;font-family:'IBM Plex Mono',monospace;}
+  .hdr-stamp .sl{font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.08em;}
+  .hdr-stamp .sv{font-size:12px;font-weight:600;margin:2px 0;}
+  .hdr-stamp .sh{font-size:9px;font-family:'IBM Plex Mono',monospace;opacity:.4;}
+  .summary-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #e8edf3;}
+  .sb{padding:14px 16px;text-align:center;border-right:1px solid #e8edf3;}
+  .sb:last-child{border-right:none;}
+  .sb-v{font-size:22px;font-weight:700;margin-bottom:2px;}
+  .sb-l{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.05em;}
+  .g{color:#059669}.r{color:#dc2626}.a{color:#d97706}.b{color:#1B4F8A}
+  section{padding:20px 28px;border-bottom:1px solid #e8edf3;}
+  section:last-child{border-bottom:none;}
+  h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0A2647;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #e8edf3;}
+  h3{font-size:12px;font-weight:700;color:#0A2647;margin-bottom:10px;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{background:#f4f6f9;padding:7px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#555;border-bottom:1px solid #dde3ea;}
+  td{padding:8px 10px;border-bottom:1px solid #eef0f4;vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#fafbfc;}
+  .vd{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.04em;}
+  .vd.ok{background:#d1fae5;color:#065f46;}.vd.no{background:#fee2e2;color:#991b1b;}
+  .vd.rev{background:#fef3c7;color:#92400e;}.vd.deb{background:#fee2e2;color:#7f1d1d;}
+  .cv{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700;}
+  .cv.p{background:#d1fae5;color:#065f46;}.cv.f{background:#fee2e2;color:#991b1b;}
+  .cv.r{background:#fef3c7;color:#92400e;}.cv.na{color:#aaa;}
+  .cf{font-family:'IBM Plex Mono',monospace;font-weight:600;text-align:right;}
+  .bn{min-width:200px;}.gstin{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#888;}
+  .gstin-h{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;font-weight:400;margin-left:8px;}
+  .tag{background:#e0e7ff;color:#3730a3;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:6px;}
+  .hr-note{font-size:10px;color:#92400e;background:#fef3c7;border-radius:3px;padding:2px 6px;margin-top:4px;display:inline-block;}
+  .detail-section{margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #eef0f4;}
+  .detail-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .at{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;white-space:nowrap;padding-right:14px;}
+  .footer{background:#f4f6f9;padding:14px 28px;font-size:10px;color:#888;display:flex;justify-content:space-between;align-items:center;}
+  .print-hint{background:#0A2647;color:white;text-align:center;padding:10px;font-size:11px;font-weight:600;}
+  @media print{
+    body{background:white;padding:0;}
+    .page{box-shadow:none;border-radius:0;}
+    .print-hint{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="print-hint">📄 To save as PDF: Press Ctrl+P (Cmd+P on Mac) → Select "Save as PDF" → Save</div>
+<div class="page">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div>
+        <div class="hdr-logo">TenderMind AI — Procurement Evaluation Platform</div>
+        <div class="hdr-title">CRPF Tender Evaluation Report</div>
+        <div class="hdr-meta">
+          Tender Ref: <strong>${refNo}</strong><br>
+          Department: Central Reserve Police Force, Ministry of Home Affairs<br>
+          Generated: ${ts}<br>
+          Evaluated by: Officer #OFC-2847
+        </div>
+      </div>
+      <div class="hdr-stamp">
+        <div class="sl">Document Status</div>
+        <div class="sv">✅ DIGITALLY SIGNED</div>
+        <div class="sh">SHA-256: a3f8c2e1d4b769...</div>
+        <div class="sl" style="margin-top:6px;">Total Bidders</div>
+        <div class="sv">${active.length}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div class="sb"><div class="sb-v g">${eligible}</div><div class="sb-l">Eligible</div></div>
+    <div class="sb"><div class="sb-v a">${revCount}</div><div class="sb-l">Under Review</div></div>
+    <div class="sb"><div class="sb-v r">${notElig}</div><div class="sb-l">Not Eligible</div></div>
+    <div class="sb"><div class="sb-v r">${debarred}</div><div class="sb-l">Debarred</div></div>
+  </div>
+
+  <section>
+    <h2>Evaluation Summary — All Bidders</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Bidder</th>
+          <th>Overall Verdict</th>
+          <th>C1 Financial</th>
+          <th>C2 Experience</th>
+          <th>C3 GST</th>
+          <th>C4 ISO</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>${bidderRows}</tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Eligibility Criteria</h2>
+    <table>
+      <thead><tr><th>#</th><th>Type</th><th>Criterion</th><th>Threshold</th><th>Method</th><th>Source</th></tr></thead>
+      <tbody>
+        ${CRITERIA.map(c=>`<tr>
+          <td>${c.n}</td>
+          <td>${c.type}</td>
+          <td style="max-width:280px;">${c.text}</td>
+          <td><strong>${c.thresh}</strong></td>
+          <td>${c.meth}</td>
+          <td style="font-size:10px;color:#666;">${c.src}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Per-Bidder Criterion Detail</h2>
+    ${bidderDetails}
+  </section>
+
+  <section>
+    <h2>Audit Trail</h2>
+    <table>
+      <thead><tr><th style="width:80px;">Time</th><th>Event</th></tr></thead>
+      <tbody>${auditRows||'<tr><td colspan="2" style="color:#aaa;">No audit entries recorded.</td></tr>'}</tbody>
+    </table>
+  </section>
+
+  <div class="footer">
+    <span>TenderMind AI — Intelligent Procurement Evaluation</span>
+    <span>Ref: ${refNo} &nbsp;|&nbsp; Generated: ${ts}</span>
+  </div>
+</div>
+</body>
+</html>`;
+
+  try {
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const win  = window.open(url, '_blank');
+    if(!win){
+      // Fallback: force download via anchor
+      const a = document.createElement('a');
+      a.href = url; a.download = `TenderMind_Evaluation_${refNo.replace(/\//g,'_')}.html`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      toast('Report downloaded — open the file in your browser to view','success');
+    } else {
+      setTimeout(()=>URL.revokeObjectURL(url), 10000);
+      toast('Report opened in new tab — press Ctrl+P to save as PDF','success');
+    }
+    alog('Final evaluation report exported by Officer #OFC-2847');
+  } catch(e){
+    toast('Export failed: '+e.message,'error');
+  }
+}
 
 // ── INIT ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
