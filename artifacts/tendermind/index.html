@@ -276,7 +276,10 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 .hr-hdr h4 { font-size:13px; font-weight:700; color:white; }
 .hr-sub { font-size:11px; color:rgba(255,255,255,0.78); margin-left:auto; }
 .hr-body { padding:14px; }
-.hr-doc { background:white; border-radius:5px; border:1px solid var(--gray-border); padding:11px; margin-bottom:12px; filter:blur(1.5px) contrast(0.8) brightness(1.05); pointer-events:none; user-select:none; font-size:10px; color:var(--text-2); line-height:1.6; }
+.hr-doc { background:white; border-radius:5px; border:1px solid var(--gray-border); padding:11px; margin-bottom:12px; font-size:10px; color:var(--text-2); line-height:1.6; }
+.hr-doc-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--amber); margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.btn-ok.sel-dec { background:var(--green); color:white; box-shadow:0 0 0 2px rgba(16,185,129,.35); }
+.btn-bad.sel-dec { background:var(--red); color:white; box-shadow:0 0 0 2px rgba(239,68,68,.35); }
 .hr-partial { background:var(--navy); border-radius:5px; padding:11px 13px; font-family:var(--mono); font-size:11px; color:rgba(255,255,255,0.68); margin-bottom:12px; line-height:1.65; }
 .hr-partial .illeg { color:rgba(255,255,255,0.22); font-style:italic; }
 .hr-acts { display:flex; gap:9px; margin-bottom:10px; }
@@ -858,6 +861,7 @@ body { font-family: var(--font); background: var(--navy); color: var(--text); mi
 <script>
 // ── STATE ──────────────────────────────────────────────
 const S = { apiKey:null, stage:1, loaded:false, approved:false, bidder:null, claudeCache:{}, hrSubs:{}, logCnt:0 };
+let hrPending = {}; // tracks selected (but not yet submitted) HR decisions per bidder id
 
 // ── DATA ───────────────────────────────────────────────
 const CRITERIA = [
@@ -1785,20 +1789,60 @@ function renderHR(b){
   const partialContent=b.isCustom
     ? `<span style="color:rgba(255,255,255,0.35);font-size:10px;display:block;margin-bottom:5px;">AI REVIEW PENDING — Project similarity assessment required</span>"Bidder has declared projects that require qualitative similarity verification against the tender criterion threshold of ₹1 Crore per project over last 5 years."`
     : `<span style="color:rgba(255,255,255,0.35);font-size:10px;display:block;margin-bottom:5px;">PARTIAL AI READ — LOW CONFIDENCE (58%)</span>"...3 project<span class="illeg">[s]</span>... government <span class="illeg">[type illegible]</span>...<br>value <span class="illeg">[not clearly legible]</span>... completed <span class="illeg">[date illegible]</span>...<br>₹<span class="illeg">[figure unclear — could be 1.2 or 1.02 Crore]</span>"`;
-  panel.innerHTML=`<div class="hr-hdr"><h4>👁 Human Review Required — Criterion 2 (Experience)</h4><span class="hr-sub">Confidence: ${conf}% — manual confirmation needed</span></div><div class="hr-body"><div class="hr-doc">${docContent}</div><div class="hr-partial">${partialContent}</div>${sub?`<div class="hr-done show">✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${sub.time}<br>Decision: <strong>${sub.decision}</strong> | Notes: ${sub.notes||'(none)'}<br>Action logged to audit trail.</div>`:`<div class="hr-acts"><button class="btn btn-ok" style="flex:1;" onclick="submitHR(${bId},'COMPLIANT')">✓ Mark as Compliant</button><button class="btn btn-bad" style="flex:1;" onclick="submitHR(${bId},'NON-COMPLIANT')">✗ Mark as Non-Compliant</button></div><textarea class="hr-notes" id="hrn-${bId}" placeholder="Reviewer notes (optional)..."></textarea><button class="btn btn-p" style="width:100%;" onclick="submitHR(${bId},null)">Submit Review</button><div class="hr-done" id="hrd-${bId}"></div>`}</div>`;
+  const pendingDec = hrPending[bId]||'';
+  const okSel  = pendingDec==='COMPLIANT'     ? ' sel-dec':'';
+  const badSel = pendingDec==='NON-COMPLIANT' ? ' sel-dec':'';
+  panel.innerHTML=`
+<div class="hr-hdr">
+  <h4>👁 Human Review Required — Criterion 2 (Experience)</h4>
+  <span class="hr-sub">Confidence: ${conf}% — manual confirmation needed</span>
+</div>
+<div class="hr-body">
+  <div class="hr-doc-label">⚠ Source Document (low quality scan)</div>
+  <div class="hr-doc">${docContent}</div>
+  <div class="hr-partial">${partialContent}</div>
+  ${sub
+    ? `<div class="hr-done show">✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${sub.time}<br>Decision: <strong>${sub.decision}</strong> | Notes: ${sub.notes||'(none)'}<br>Action logged to audit trail.</div>`
+    : `<div id="hr-acts-${bId}">
+         <p style="font-size:11px;color:var(--text-2);margin:0 0 8px;">Step 1 — Select a verdict:</p>
+         <div class="hr-acts">
+           <button class="btn btn-ok${okSel}" id="hrbtn-ok-${bId}"  style="flex:1;" onclick="selectHRDec(${bId},'COMPLIANT')">✓ Mark as Compliant</button>
+           <button class="btn btn-bad${badSel}" id="hrbtn-bad-${bId}" style="flex:1;" onclick="selectHRDec(${bId},'NON-COMPLIANT')">✗ Mark as Non-Compliant</button>
+         </div>
+         <p style="font-size:11px;color:var(--text-2);margin:0 0 4px;">Step 2 — Add notes (optional) then submit:</p>
+         <textarea class="hr-notes" id="hrn-${bId}" placeholder="Reviewer notes (optional)..."></textarea>
+         <button class="btn btn-p" style="width:100%;" onclick="submitHR(${bId})">Submit Review</button>
+         <div class="hr-done" id="hrd-${bId}"></div>
+       </div>`
+  }
+</div>`;
   det.appendChild(panel);
 }
 
-function submitHR(bIdx,dec){
-  const notes=document.getElementById('hrn-'+bIdx)?.value||'';
-  if(!dec){toast('Please click Compliant or Non-Compliant first','warning');return;}
-  const t=now();
-  S.hrSubs[bIdx]={decision:dec,notes,time:t};
-  const hrd=document.getElementById('hrd-'+bIdx);
+function selectHRDec(bId, dec){
+  hrPending[bId] = dec;
+  // Update button visuals
+  const okBtn  = document.getElementById('hrbtn-ok-'+bId);
+  const badBtn = document.getElementById('hrbtn-bad-'+bId);
+  if(okBtn)  okBtn.classList.toggle('sel-dec',  dec==='COMPLIANT');
+  if(badBtn) badBtn.classList.toggle('sel-dec', dec==='NON-COMPLIANT');
+}
+
+function submitHR(bIdx){
+  const dec = hrPending[bIdx];
+  if(!dec){ toast('Please select Compliant or Non-Compliant first','warning'); return; }
+  const notes = document.getElementById('hrn-'+bIdx)?.value||'';
+  const t = now();
+  S.hrSubs[bIdx] = {decision:dec, notes, time:t};
+  // Hide the action area and show confirmation
+  const acts = document.getElementById('hr-acts-'+bIdx);
+  if(acts) acts.style.display='none';
+  const hrd = document.getElementById('hrd-'+bIdx);
   if(hrd){
     hrd.innerHTML=`✓ Review submitted by Officer ID #OFC-2847 | Timestamp: ${t}<br>Decision: <strong>${dec}</strong> | Notes: ${notes||'(none)'}<br>Action logged to audit trail.`;
     hrd.classList.add('show');
   }
+  delete hrPending[bIdx];
   const active=getActiveBidders();
   const bidder=active.find(b=>b.id===bIdx)||{name:'Bidder #'+bIdx};
   alog(`Human review submitted for ${bidder.name} (Criterion 2) by #OFC-2847 — ${dec}`);
