@@ -16,6 +16,8 @@ AI-Powered Government Tender Evaluation Platform
 Turning 3-day manual evaluations into 38-minute traceable verdicts
 
 
+---
+
 
 ## 🏆 Hackathon
 
