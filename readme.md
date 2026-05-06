@@ -26,7 +26,7 @@ Turning 3-day manual evaluations into 38-minute traceable verdicts
 | **Event** | AI for Bharat 2 — HackerEarth |
 | **Theme** | 3: AI-Based Tender Evaluation and Eligibility Analysis for Government Procurement by CRPF |
 | **Stage** | ✅ Shortlisted for Prototype Round |
-| **Team** | madukalmanoj_e400 |
+| **Team** | Trust_the_Process |
 | **Live Demo** | https://tender-mind-ai--kakashisparta1.replit.app |
 
 
